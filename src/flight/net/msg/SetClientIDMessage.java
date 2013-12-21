@@ -8,16 +8,12 @@ public class SetClientIDMessage extends Message {
 
 	SetClientIDMessage() {}
 
-	public SetClientIDMessage(byte source) {
-		super(source);
-	}
-
 	public SetClientIDMessage(byte source, byte newId) {
 		super(source);
 		this.newId = newId;
 	}
 
-	private byte	newId	= -1;
+	private byte	newId;
 	
 	public byte getNewId() {
 		return newId;

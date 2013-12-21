@@ -23,7 +23,7 @@ public abstract class Message {
 
 	Message() {}
 
-	public Message(byte source) {
+	Message(byte source) {
 		setSource(source);
 	}
 

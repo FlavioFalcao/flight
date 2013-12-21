@@ -31,7 +31,6 @@ public class MessageSerializationTest {
 		messages.add(new AcknowledgeMessage(id));
 		messages.add(new SetClientIDMessage(id, newId));
 		messages.add(new StringMessage(id, "Hello World!"));
-		messages.add(new DataMessage(id, null));
 		messages.add(new DataMessage(id, data1));
 		messages.add(new DataMessage(id, data2));
 

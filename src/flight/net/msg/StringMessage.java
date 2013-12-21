@@ -8,10 +8,6 @@ public class StringMessage extends Message {
 
 	StringMessage() {}
 
-	public StringMessage(byte source) {
-		super(source);
-	}
-
 	public StringMessage(byte source, String string) {
 		super(source);
 		if (string == null)
@@ -19,7 +15,7 @@ public class StringMessage extends Message {
 		this.string = string;
 	}
 
-	private String	string	= "";
+	private String	string;
 	
 	public String getString() {
 		return string;

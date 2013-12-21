@@ -8,17 +8,16 @@ public class DataMessage extends Message {
 
 	DataMessage() {}
 
-	public DataMessage(byte source) {
-		super(source);
-	}
-
 	public DataMessage(byte source, byte[] data) {
 		super(source);
-		this.data = data;
+		if (data != null)
+			this.data = data;
+		else
+			throw new IllegalArgumentException();
 	}
 
-	private byte[]	data	= null;
-	
+	private byte[]	data;
+
 	public byte[] getData() {
 		return data;
 	}
@@ -26,34 +25,22 @@ public class DataMessage extends Message {
 	@Override
 	void read(ObjectInputStream stream) throws IOException {
 		super.read(stream);
-		int length = stream.readInt();
-		if (length < 0) {
-			data = null;
-		} else {
-			data = new byte[length];
-			stream.read(data, 0, data.length);
-		}
+		data = new byte[stream.readInt()];
+		stream.read(data, 0, data.length);
 	}
 
 	@Override
 	void write(ObjectOutputStream stream) throws IOException {
 		super.write(stream);
-		if (data == null) {
-			stream.writeInt(-1);
-		} else {
-			stream.writeInt(data.length);
-			for (byte b : data)
-				stream.writeByte(b);
-		}
+		stream.writeInt(data.length);
+		stream.write(data);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
 		if (getClass() == obj.getClass() && super.equals(obj)) {
 			byte[] objData = ((DataMessage) obj).data;
-			if (data == null && objData == null) {
-				return true;
-			} else if (data.length == objData.length) {
+			if (data.length == objData.length) {
 				for (int i = 0; i < data.length; ++i)
 					if (data[i] != objData[i])
 						return false;
@@ -66,19 +53,13 @@ public class DataMessage extends Message {
 
 	@Override
 	public String toString() {
-		String string = super.toString() + " data=";
-		if (data == null) {
-			string += "null";
-		} else {
-			string += "{";
-			for (int i = 0; i < data.length; ++i) {
-				if (i > 0)
-					string += " ";
-				string += String.format("%02X", data[i]);
-			}
-			string += "}";
+		String string = super.toString() + " data={";
+		for (int i = 0; i < data.length; ++i) {
+			if (i > 0)
+				string += " ";
+			string += String.format("%02X", data[i]);
 		}
-		return string;
+		return string + "}";
 	}
 
 }
