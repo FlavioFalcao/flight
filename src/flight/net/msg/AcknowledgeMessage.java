@@ -1,8 +1,9 @@
-package flight.net;
+package flight.net.msg;
+
 
 public class AcknowledgeMessage extends Message {
 
-	public AcknowledgeMessage() {}
+	AcknowledgeMessage() {}
 
 	public AcknowledgeMessage(byte source) {
 		super(source);

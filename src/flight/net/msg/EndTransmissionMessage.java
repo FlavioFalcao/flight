@@ -1,8 +1,8 @@
-package flight.net;
+package flight.net.msg;
 
 public class EndTransmissionMessage extends Message {
 
-	public EndTransmissionMessage() {}
+	EndTransmissionMessage() {}
 
 	public EndTransmissionMessage(byte source) {
 		super(source);

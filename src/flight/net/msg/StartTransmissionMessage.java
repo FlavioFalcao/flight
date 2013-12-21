@@ -1,4 +1,5 @@
-package flight.net;
+package flight.net.msg;
+
 
 public class StartTransmissionMessage extends Message {
 

@@ -1,4 +1,4 @@
-package flight.net;
+package flight.net.msg;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -21,7 +21,7 @@ public abstract class Message {
 		messageCodes.put((byte) 11, StringMessage.class);
 	}
 
-	public Message() {}
+	Message() {}
 
 	public Message(byte source) {
 		setSource(source);

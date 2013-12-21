@@ -1,4 +1,4 @@
-package flight.net;
+package flight.net.msg;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -6,7 +6,7 @@ import java.io.ObjectOutputStream;
 
 public class DataMessage extends Message {
 
-	public DataMessage() {}
+	DataMessage() {}
 
 	public DataMessage(byte source) {
 		super(source);

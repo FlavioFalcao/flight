@@ -1,4 +1,4 @@
-package flight.net;
+package flight.net.msg;
 
 import java.io.IOException;
 import java.io.InputStream;

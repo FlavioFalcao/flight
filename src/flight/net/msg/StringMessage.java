@@ -1,4 +1,4 @@
-package flight.net;
+package flight.net.msg;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -6,7 +6,7 @@ import java.io.ObjectOutputStream;
 
 public class StringMessage extends Message {
 
-	public StringMessage() {}
+	StringMessage() {}
 
 	public StringMessage(byte source) {
 		super(source);

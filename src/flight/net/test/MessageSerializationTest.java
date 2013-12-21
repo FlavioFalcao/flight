@@ -6,16 +6,16 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
-import flight.net.AcknowledgeMessage;
-import flight.net.DataMessage;
-import flight.net.EndTransmissionMessage;
-import flight.net.Message;
-import flight.net.MessageReader;
-import flight.net.MessageWriter;
-import flight.net.NullMessage;
-import flight.net.SetClientIDMessage;
-import flight.net.StartTransmissionMessage;
-import flight.net.StringMessage;
+import flight.net.msg.AcknowledgeMessage;
+import flight.net.msg.DataMessage;
+import flight.net.msg.EndTransmissionMessage;
+import flight.net.msg.Message;
+import flight.net.msg.MessageReader;
+import flight.net.msg.MessageWriter;
+import flight.net.msg.NullMessage;
+import flight.net.msg.SetClientIDMessage;
+import flight.net.msg.StartTransmissionMessage;
+import flight.net.msg.StringMessage;
 
 public class MessageSerializationTest {
 

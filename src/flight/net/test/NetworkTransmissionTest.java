@@ -3,10 +3,10 @@ package flight.net.test;
 import java.util.LinkedList;
 
 import flight.net.Client;
-import flight.net.Message;
-import flight.net.MessageHandler;
 import flight.net.Server;
-import flight.net.StringMessage;
+import flight.net.msg.Message;
+import flight.net.msg.MessageHandler;
+import flight.net.msg.StringMessage;
 
 public class NetworkTransmissionTest {
 

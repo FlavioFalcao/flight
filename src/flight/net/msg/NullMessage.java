@@ -1,8 +1,8 @@
-package flight.net;
+package flight.net.msg;
 
 public class NullMessage extends Message {
 
-	public NullMessage() {}
+	NullMessage() {}
 
 	public NullMessage(byte source) {
 		super(source);

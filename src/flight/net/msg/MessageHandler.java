@@ -1,4 +1,4 @@
-package flight.net;
+package flight.net.msg;
 
 public interface MessageHandler {
 

@@ -1,4 +1,4 @@
-package flight.net;
+package flight.net.msg;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -6,7 +6,7 @@ import java.io.ObjectOutputStream;
 
 public class SetClientIDMessage extends Message {
 
-	public SetClientIDMessage() {}
+	SetClientIDMessage() {}
 
 	public SetClientIDMessage(byte source) {
 		super(source);

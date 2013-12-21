@@ -1,4 +1,4 @@
-package flight.net;
+package flight.net.msg;
 
 import java.util.LinkedList;
 import java.util.List;
