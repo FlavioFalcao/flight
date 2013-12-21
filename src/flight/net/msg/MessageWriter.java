@@ -21,10 +21,7 @@ public class MessageWriter {
 	}
 
 	public void write(Message message) throws IOException {
-		Class<? extends Message> messageClass = message.getClass();
-		byte messageCode = Message.messageCodes.inverse().get(messageClass);
-		stream.writeByte(messageCode);
-		message.write(stream);
+		MessageParser.writeMessage(stream, message);
 		stream.flush();
 	}
 }

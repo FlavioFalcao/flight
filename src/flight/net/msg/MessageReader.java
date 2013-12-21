@@ -22,12 +22,7 @@ public class MessageReader {
 
 	public Message read() throws IOException, InstantiationException,
 			IllegalAccessException {
-		byte messageCode = stream.readByte();
-		Class<? extends Message> messageClass = Message.messageCodes
-				.get(messageCode);
-		Message message = messageClass.newInstance();
-		message.read(stream);
-		return message;
+		return MessageParser.readMessage(stream);
 	}
 
 }
