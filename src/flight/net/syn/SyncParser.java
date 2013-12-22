@@ -16,20 +16,17 @@ public abstract class SyncParser {
 
 	public static Sync readSync(ObjectInputStream stream) throws IOException,
 			InstantiationException, IllegalAccessException {
-		int syncId = stream.readInt();
 		byte syncCode = stream.readByte();
 		Class<? extends Sync> syncClass = syncCodes.get(syncCode);
 		Sync sync = syncClass.newInstance();
 		byte[] syncData = new byte[stream.readByte()];
 		stream.read(syncData);
-		sync.setId(syncId);
 		sync.setData(syncData);
 		return sync;
 	}
 
 	public static void writeSync(ObjectOutputStream stream, Sync sync)
 			throws IOException {
-		stream.writeInt(sync.getId());
 		Class<? extends Sync> syncClass = sync.getClass();
 		byte syncCode = syncCodes.inverse().get(syncClass);
 		stream.writeByte(syncCode);

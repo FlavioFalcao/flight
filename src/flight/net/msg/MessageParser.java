@@ -21,6 +21,8 @@ public abstract class MessageParser {
 		messageCodes.put((byte) 11, StringMessage.class);
 
 		messageCodes.put((byte) 20, AddSyncMessage.class);
+		messageCodes.put((byte) 21, UpdateSyncMessage.class);
+		messageCodes.put((byte) 22, RemoveSyncMessage.class);
 	}
 
 	public static Message readMessage(ObjectInputStream stream)

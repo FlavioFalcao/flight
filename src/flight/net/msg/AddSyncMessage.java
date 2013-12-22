@@ -7,22 +7,27 @@ import java.io.ObjectOutputStream;
 import flight.net.syn.Sync;
 import flight.net.syn.SyncParser;
 
-public class AddSyncMessage extends Message {
+public class AddSyncMessage extends SyncMessage {
 
 	AddSyncMessage() {}
 
 	public AddSyncMessage(byte source, Sync sync) {
-		super(source);
+		super(source, sync.getId());
 		this.sync = sync;
 	}
 
 	private Sync	sync;
+
+	public Sync getSync() {
+		return sync;
+	}
 
 	@Override
 	void read(ObjectInputStream stream) throws IOException,
 			InstantiationException, IllegalAccessException {
 		super.read(stream);
 		sync = SyncParser.readSync(stream);
+		sync.setId(getSyncId());
 	}
 
 	@Override

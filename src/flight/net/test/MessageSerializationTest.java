@@ -14,10 +14,13 @@ import flight.net.msg.Message;
 import flight.net.msg.MessageReader;
 import flight.net.msg.MessageWriter;
 import flight.net.msg.NullMessage;
+import flight.net.msg.RemoveSyncMessage;
 import flight.net.msg.SetClientIDMessage;
 import flight.net.msg.StartTransmissionMessage;
 import flight.net.msg.StringMessage;
+import flight.net.msg.UpdateSyncMessage;
 import flight.net.syn.IntSync;
+import flight.net.syn.Sync;
 
 public class MessageSerializationTest {
 
@@ -26,6 +29,8 @@ public class MessageSerializationTest {
 
 		byte id = 13, newId = 11;
 		byte[] data1 = {}, data2 = { 4, 8, 15, 16, 23, 42 };
+		Sync sync = new IntSync(9);
+		sync.setId(id);
 		List<Message> messages = new LinkedList<Message>();
 		messages.add(new NullMessage(id));
 		messages.add(new StartTransmissionMessage(id));
@@ -35,7 +40,9 @@ public class MessageSerializationTest {
 		messages.add(new StringMessage(id, "Hello World!"));
 		messages.add(new DataMessage(id, data1));
 		messages.add(new DataMessage(id, data2));
-		messages.add(new AddSyncMessage(id, new IntSync(10)));
+		messages.add(new AddSyncMessage(id, sync));
+		messages.add(new UpdateSyncMessage(id, sync));
+		messages.add(new RemoveSyncMessage(id, sync));
 
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		MessageWriter writer = new MessageWriter(bytes);
