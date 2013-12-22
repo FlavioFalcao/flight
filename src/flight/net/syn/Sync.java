@@ -2,15 +2,7 @@ package flight.net.syn;
 
 import java.nio.ByteBuffer;
 
-import flight.util.BidirectionalMap;
-
 public abstract class Sync {
-
-	static BidirectionalMap<Byte, Class<? extends Sync>>	syncCodes	= new BidirectionalMap<Byte, Class<? extends Sync>>();
-
-	static {
-
-	}
 
 	Sync() {}
 	

@@ -23,7 +23,8 @@ public class DataMessage extends Message {
 	}
 
 	@Override
-	void read(ObjectInputStream stream) throws IOException {
+	void read(ObjectInputStream stream) throws IOException,
+			InstantiationException, IllegalAccessException {
 		super.read(stream);
 		data = new byte[stream.readInt()];
 		stream.read(data, 0, data.length);

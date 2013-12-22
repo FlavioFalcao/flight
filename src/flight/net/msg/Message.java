@@ -22,7 +22,8 @@ public abstract class Message {
 		this.source = source;
 	}
 
-	void read(ObjectInputStream stream) throws IOException {
+	void read(ObjectInputStream stream) throws IOException,
+			InstantiationException, IllegalAccessException {
 		source = stream.readByte();
 	}
 

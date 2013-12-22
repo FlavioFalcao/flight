@@ -4,44 +4,44 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-public class SetClientIDMessage extends Message {
+import flight.net.syn.Sync;
+import flight.net.syn.SyncParser;
 
-	SetClientIDMessage() {}
+public class AddSyncMessage extends Message {
 
-	public SetClientIDMessage(byte source, byte newId) {
+	AddSyncMessage() {}
+
+	public AddSyncMessage(byte source, Sync sync) {
 		super(source);
-		this.newId = newId;
+		this.sync = sync;
 	}
 
-	private byte	newId;
-	
-	public byte getNewId() {
-		return newId;
-	}
+	private Sync	sync;
 
 	@Override
 	void read(ObjectInputStream stream) throws IOException,
 			InstantiationException, IllegalAccessException {
 		super.read(stream);
-		newId = stream.readByte();
+		sync = SyncParser.readSync(stream);
 	}
 
 	@Override
 	void write(ObjectOutputStream stream) throws IOException {
 		super.write(stream);
-		stream.writeByte(newId);
+		SyncParser.writeSync(stream, sync);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (getClass() == obj.getClass() && super.equals(obj))
-			return newId == ((SetClientIDMessage) obj).newId;
-		else
+		if (getClass() == obj.getClass() && super.equals(obj)) {
+			return sync.equals(((AddSyncMessage) obj).sync);
+		} else
 			return false;
 	}
 
 	@Override
 	public String toString() {
-		return super.toString() + " newId=" + newId;
+		return super.toString() + " sync={" + sync + "}";
 	}
+
 }

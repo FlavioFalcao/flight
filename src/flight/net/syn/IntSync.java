@@ -2,16 +2,12 @@ package flight.net.syn;
 
 import java.nio.ByteBuffer;
 
-public class SyncInt extends Sync {
+public class IntSync extends Sync {
 
-	public SyncInt() {}
+	IntSync() {}
 
-	public SyncInt(int value) {
+	public IntSync(int value) {
 		this.value = value;
-	}
-
-	public SyncInt(int id, byte[] data) {
-		super(id, data);
 	}
 
 	private int	value	= 0;
@@ -38,7 +34,7 @@ public class SyncInt extends Sync {
 	@Override
 	public boolean equals(Object obj) {
 		if (getClass() == obj.getClass() && super.equals(obj))
-			return value == ((SyncInt) obj).value;
+			return value == ((IntSync) obj).value;
 		else
 			return false;
 	}

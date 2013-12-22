@@ -22,7 +22,8 @@ public class StringMessage extends Message {
 	}
 
 	@Override
-	void read(ObjectInputStream stream) throws IOException {
+	void read(ObjectInputStream stream) throws IOException,
+			InstantiationException, IllegalAccessException {
 		super.read(stream);
 		string = stream.readUTF();
 	}
