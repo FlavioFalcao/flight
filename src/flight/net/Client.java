@@ -17,6 +17,7 @@ import flight.net.err.TransmissionException;
 import flight.net.msg.AcknowledgeMessage;
 import flight.net.msg.EndTransmissionMessage;
 import flight.net.msg.Message;
+import flight.net.msg.AbstractMessageProducer;
 import flight.net.msg.MessageProducer;
 import flight.net.msg.MessageReader;
 import flight.net.msg.MessageWriter;
@@ -24,7 +25,8 @@ import flight.net.msg.NullMessage;
 import flight.net.msg.SetClientIDMessage;
 import flight.net.msg.StartTransmissionMessage;
 
-public class Client extends MessageProducer implements Runnable {
+public class Client extends AbstractMessageProducer implements MessageProducer,
+		Runnable {
 
 	public Client() {}
 

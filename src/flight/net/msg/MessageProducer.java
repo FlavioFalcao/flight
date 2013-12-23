@@ -1,23 +1,11 @@
 package flight.net.msg;
 
-import java.util.LinkedList;
-import java.util.List;
+public interface MessageProducer {
 
-public abstract class MessageProducer {
+	public void addMessageHandler(MessageHandler handler);
 
-	private List<MessageHandler>	handlers	= new LinkedList<MessageHandler>();
+	public MessageHandler[] getMessageHandlers();
 
-	public void addMessageHandler(MessageHandler handler) {
-		handlers.add(handler);
-	}
-
-	public MessageHandler[] getMessageHandlers() {
-		return handlers.toArray(new MessageHandler[handlers.size()]);
-	}
-
-	public void broadcastMessage(Message message) {
-		for (MessageHandler handler : handlers)
-			handler.handleMessage(message);
-	}
+	public void removeMessageHandler(MessageHandler handler);
 
 }

@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 
 import flight.global.Logger;
 import flight.net.err.TransmissionException;
+import flight.net.msg.AbstractMessageProducer;
 import flight.net.msg.AcknowledgeMessage;
 import flight.net.msg.DataMessage;
 import flight.net.msg.EndTransmissionMessage;
@@ -32,7 +33,8 @@ import flight.net.msg.SetClientIDMessage;
 import flight.net.msg.StartTransmissionMessage;
 import flight.net.msg.StringMessage;
 
-public class Server extends MessageProducer implements Runnable {
+public class Server extends AbstractMessageProducer implements MessageProducer,
+		Runnable {
 
 	public Server() {}
 
@@ -76,8 +78,7 @@ public class Server extends MessageProducer implements Runnable {
 		client.id = 0;
 		synchronized (clients) {
 			while (clients.containsKey(++client.id));
-			client.write(new SetClientIDMessage((byte) 0,
-					client.id));
+			client.write(new SetClientIDMessage((byte) 0, client.id));
 			clients.put(client.id, client);
 		}
 	}
