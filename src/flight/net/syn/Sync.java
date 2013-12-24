@@ -5,33 +5,45 @@ import java.nio.ByteBuffer;
 public abstract class Sync {
 
 	Sync() {}
-	
+
 	Sync(int id, byte[] data) {
 		setId(id);
 		setData(data);
 	}
 
-	private int			id		= 0;
-	private boolean		updated	= true;
-	
-	protected ByteBuffer	data	= null;
+	private int				id			= 0;
+	private boolean			updated		= true;
+
+	private SyncRegistry	registry	= null;
+
+	protected ByteBuffer	data		= null;
 
 	public int getId() {
 		return id;
+	}
+
+	public byte getClientId() {
+		return (byte) ((getId() >> (8 * 3)) & 0xFF);
 	}
 
 	public void setId(int id) {
 		this.id = id;
 	}
 
-	public boolean isUpdated() {
+	boolean isUpdated() {
 		return updated;
 	}
 
-	public void setUpdated(boolean updated) {
+	void setUpdated(boolean updated) {
 		this.updated = updated;
+		if (this.updated && registry != null)
+			registry.markSyncUpdated(this);
 	}
-	
+
+	void setRegistry(SyncRegistry registry) {
+		this.registry = registry;
+	}
+
 	public byte[] getData() {
 		if (isUpdated())
 			writeValueToData();

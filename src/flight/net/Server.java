@@ -22,6 +22,7 @@ import flight.global.Logger;
 import flight.net.err.TransmissionException;
 import flight.net.msg.AbstractMessageProducer;
 import flight.net.msg.AcknowledgeMessage;
+import flight.net.msg.AddSyncMessage;
 import flight.net.msg.DataMessage;
 import flight.net.msg.EndTransmissionMessage;
 import flight.net.msg.Message;
@@ -29,9 +30,13 @@ import flight.net.msg.MessageProducer;
 import flight.net.msg.MessageReader;
 import flight.net.msg.MessageWriter;
 import flight.net.msg.NullMessage;
+import flight.net.msg.RemoveSyncMessage;
 import flight.net.msg.SetClientIDMessage;
 import flight.net.msg.StartTransmissionMessage;
 import flight.net.msg.StringMessage;
+import flight.net.msg.UpdateSyncMessage;
+import flight.net.syn.Sync;
+import flight.net.syn.SyncRegistry;
 
 public class Server extends AbstractMessageProducer implements MessageProducer,
 		Runnable {
@@ -54,6 +59,9 @@ public class Server extends AbstractMessageProducer implements MessageProducer,
 		caughtMessages.add(EndTransmissionMessage.class);
 		caughtMessages.add(AcknowledgeMessage.class);
 		caughtMessages.add(SetClientIDMessage.class);
+		caughtMessages.add(AddSyncMessage.class);
+		caughtMessages.add(UpdateSyncMessage.class);
+		caughtMessages.add(RemoveSyncMessage.class);
 
 		rebroadcastMessages = new LinkedHashSet<Class<? extends Message>>();
 		rebroadcastMessages.add(DataMessage.class);
@@ -65,11 +73,13 @@ public class Server extends AbstractMessageProducer implements MessageProducer,
 	private boolean							running		= false;
 
 	private Map<Byte, ClientConnection>		clients;
+	private SyncRegistry					syncs;
 
 	private void initServer() throws IOException {
 		server = new ServerSocket(hostPort);
 		threadPool = Executors.newCachedThreadPool();
 		clients = new ConcurrentSkipListMap<Byte, ClientConnection>();
+		syncs = new SyncRegistry((byte) 0);
 		running = true;
 		Logger.logOutput(SERVER_STARTED, hostPort);
 	}
@@ -81,19 +91,25 @@ public class Server extends AbstractMessageProducer implements MessageProducer,
 			client.write(new SetClientIDMessage((byte) 0, client.id));
 			clients.put(client.id, client);
 		}
+		for (Sync sync : syncs) {
+			client.write(new AddSyncMessage((byte) 0, sync));
+		}
 	}
 
 	private void removeClient(byte id) {
 		ClientConnection client;
-		synchronized (clients) {
-			client = clients.remove(id);
-		}
+		client = clients.remove(id);
 		if (client != null) {
 			try {
 				client.write(new EndTransmissionMessage((byte) 0));
 				client.clientConnection.close();
 			} catch (NullPointerException | IOException e) {}
 			Logger.logOutput(SERVER_REMOVED_CLIENT, id);
+			for (Sync sync : syncs) {
+				if (sync.getClientId() == client.id)
+					rebroadcastMessage(new RemoveSyncMessage((byte) 0,
+							sync.getId()));
+			}
 		}
 	}
 
@@ -101,6 +117,18 @@ public class Server extends AbstractMessageProducer implements MessageProducer,
 		if (caughtMessages.contains(message.getClass())) {
 			if (message instanceof EndTransmissionMessage) {
 				removeClient(message.getSource());
+			} else if (message instanceof AddSyncMessage) {
+				AddSyncMessage addMessage = (AddSyncMessage) message;
+				syncs.addSync(addMessage.getSync());
+				rebroadcastMessage(addMessage);
+			} else if (message instanceof UpdateSyncMessage) {
+				UpdateSyncMessage updateMessage = (UpdateSyncMessage) message;
+				syncs.updateSync(updateMessage.getSyncId(),
+						updateMessage.getSyncData());
+				rebroadcastMessage(message);
+			} else if (message instanceof RemoveSyncMessage) {
+				syncs.removeSync(((RemoveSyncMessage) message).getSyncId());
+				rebroadcastMessage(message);
 			}
 		} else if (rebroadcastMessages.contains(message.getClass())) {
 			rebroadcastMessage(message);
@@ -109,10 +137,14 @@ public class Server extends AbstractMessageProducer implements MessageProducer,
 		}
 	}
 
-	private void rebroadcastMessage(Message message) throws IOException {
+	private void rebroadcastMessage(Message message) {
 		for (Entry<Byte, ClientConnection> entry : clients.entrySet())
 			if (entry.getKey() != message.getSource()) {
-				entry.getValue().write(message);
+				try {
+					entry.getValue().write(message);
+				} catch (IOException e) {
+					removeClient(entry.getKey());
+				}
 			}
 	}
 

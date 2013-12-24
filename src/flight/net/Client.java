@@ -1,9 +1,9 @@
 package flight.net;
 
 import static flight.global.Const.CLIENT_CONNECTING;
-import static flight.global.Const.CLIENT_STARTED;
-import static flight.global.Const.CLIENT_HANDLING_MESSAGE;
 import static flight.global.Const.CLIENT_CONNECTION_LOST;
+import static flight.global.Const.CLIENT_HANDLING_MESSAGE;
+import static flight.global.Const.CLIENT_STARTED;
 import static flight.global.Const.CLIENT_STOPPED;
 
 import java.io.IOException;
@@ -14,16 +14,21 @@ import java.util.Set;
 
 import flight.global.Logger;
 import flight.net.err.TransmissionException;
+import flight.net.msg.AbstractMessageProducer;
 import flight.net.msg.AcknowledgeMessage;
+import flight.net.msg.AddSyncMessage;
 import flight.net.msg.EndTransmissionMessage;
 import flight.net.msg.Message;
-import flight.net.msg.AbstractMessageProducer;
 import flight.net.msg.MessageProducer;
 import flight.net.msg.MessageReader;
 import flight.net.msg.MessageWriter;
 import flight.net.msg.NullMessage;
+import flight.net.msg.RemoveSyncMessage;
 import flight.net.msg.SetClientIDMessage;
 import flight.net.msg.StartTransmissionMessage;
+import flight.net.msg.UpdateSyncMessage;
+import flight.net.syn.Sync;
+import flight.net.syn.SyncRegistry;
 
 public class Client extends AbstractMessageProducer implements MessageProducer,
 		Runnable {
@@ -51,10 +56,15 @@ public class Client extends AbstractMessageProducer implements MessageProducer,
 		caughtMessages.add(EndTransmissionMessage.class);
 		caughtMessages.add(AcknowledgeMessage.class);
 		caughtMessages.add(SetClientIDMessage.class);
+		caughtMessages.add(AddSyncMessage.class);
+		caughtMessages.add(UpdateSyncMessage.class);
+		caughtMessages.add(RemoveSyncMessage.class);
 	}
 
 	private byte							id;
 	private boolean							running		= false;
+
+	private SyncRegistry					syncs;
 
 	private Socket							serverConnection;
 	private MessageWriter					outputToServer;
@@ -79,6 +89,7 @@ public class Client extends AbstractMessageProducer implements MessageProducer,
 
 		// initialize client state
 		id = ((SetClientIDMessage) assignment).getNewId();
+		syncs = new SyncRegistry(id);
 		running = true;
 		Logger.logOutput(CLIENT_STARTED, id);
 	}
@@ -90,6 +101,17 @@ public class Client extends AbstractMessageProducer implements MessageProducer,
 				running = false;
 			} else if (message instanceof SetClientIDMessage) {
 				id = ((SetClientIDMessage) message).getNewId();
+			} else if (message instanceof AddSyncMessage) {
+				AddSyncMessage addMessage = (AddSyncMessage) message;
+				syncs.addSync(addMessage.getSync());
+				broadcastMessage(addMessage);
+			} else if (message instanceof UpdateSyncMessage) {
+				UpdateSyncMessage updateMessage = (UpdateSyncMessage) message;
+				syncs.updateSync(updateMessage.getSyncId(),
+						updateMessage.getSyncData());
+			} else if (message instanceof RemoveSyncMessage) {
+				syncs.removeSync(((RemoveSyncMessage) message).getSyncId());
+				broadcastMessage(message);
 			}
 		} else {
 			broadcastMessage(message);
@@ -149,6 +171,28 @@ public class Client extends AbstractMessageProducer implements MessageProducer,
 			return id;
 		else
 			return -1;
+	}
+
+	public void addSync(Sync sync) {
+		if (running) {
+			syncs.addNewSync(sync);
+			sendMessage(new AddSyncMessage(id, sync));
+		}
+	}
+
+	public void removeSync(int syncId) {
+		if (running) {
+			syncs.removeSync(syncId);
+			sendMessage(new RemoveSyncMessage(id, syncId));
+		}
+	}
+
+	public Sync getSync(int syncId) {
+		return running ? syncs.getSync(syncId) : null;
+	}
+
+	public Iterable<Sync> getSyncs() {
+		return running ? syncs : null;
 	}
 
 	public static void main(String[] args) throws UnknownHostException,
