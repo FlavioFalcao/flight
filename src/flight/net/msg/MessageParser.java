@@ -1,9 +1,12 @@
 package flight.net.msg;
 
+import static flight.global.Const.COULD_NOT_INSTANTIATE;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import flight.global.Logger;
 import flight.util.BidirectionalMap;
 
 public abstract class MessageParser {
@@ -12,10 +15,9 @@ public abstract class MessageParser {
 
 	static {
 		messageCodes.put((byte) 0, NullMessage.class);
-		messageCodes.put((byte) 1, StartTransmissionMessage.class);
-		messageCodes.put((byte) 2, EndTransmissionMessage.class);
-		messageCodes.put((byte) 3, AcknowledgeMessage.class);
-		messageCodes.put((byte) 4, SetClientIDMessage.class);
+		messageCodes.put((byte) 1, EndTransmissionMessage.class);
+		messageCodes.put((byte) 2, AcknowledgeMessage.class);
+		messageCodes.put((byte) 3, AssignClientIDMessage.class);
 
 		messageCodes.put((byte) 10, DataMessage.class);
 		messageCodes.put((byte) 11, StringMessage.class);
@@ -26,12 +28,17 @@ public abstract class MessageParser {
 	}
 
 	public static Message readMessage(ObjectInputStream stream)
-			throws IOException, InstantiationException, IllegalAccessException {
+			throws IOException {
 		byte messageCode = stream.readByte();
 		Class<? extends Message> messageClass = messageCodes.get(messageCode);
-		Message message = messageClass.newInstance();
-		message.read(stream);
-		return message;
+		try {
+			Message message = messageClass.newInstance();
+			message.read(stream);
+			return message;
+		} catch (InstantiationException | IllegalAccessException e) {
+			Logger.logError(COULD_NOT_INSTANTIATE, messageClass);
+			return null;
+		}
 	}
 
 	public static void writeMessage(ObjectOutputStream stream, Message message)

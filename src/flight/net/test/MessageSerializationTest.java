@@ -8,6 +8,7 @@ import java.util.List;
 
 import flight.net.msg.AcknowledgeMessage;
 import flight.net.msg.AddSyncMessage;
+import flight.net.msg.AssignClientIDMessage;
 import flight.net.msg.DataMessage;
 import flight.net.msg.EndTransmissionMessage;
 import flight.net.msg.Message;
@@ -15,8 +16,6 @@ import flight.net.msg.MessageReader;
 import flight.net.msg.MessageWriter;
 import flight.net.msg.NullMessage;
 import flight.net.msg.RemoveSyncMessage;
-import flight.net.msg.SetClientIDMessage;
-import flight.net.msg.StartTransmissionMessage;
 import flight.net.msg.StringMessage;
 import flight.net.msg.UpdateSyncMessage;
 import flight.net.syn.IntSync;
@@ -33,10 +32,9 @@ public class MessageSerializationTest {
 		sync.setId(id);
 		List<Message> messages = new LinkedList<Message>();
 		messages.add(new NullMessage(id));
-		messages.add(new StartTransmissionMessage(id));
 		messages.add(new EndTransmissionMessage(id));
 		messages.add(new AcknowledgeMessage(id));
-		messages.add(new SetClientIDMessage(id, newId));
+		messages.add(new AssignClientIDMessage(id, newId));
 		messages.add(new StringMessage(id, "Hello World!"));
 		messages.add(new DataMessage(id, data1));
 		messages.add(new DataMessage(id, data2));

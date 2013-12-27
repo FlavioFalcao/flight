@@ -7,7 +7,7 @@ public class IntSync extends Sync {
 	IntSync() {}
 
 	public IntSync(int value) {
-		this.value = value;
+		value(value);
 	}
 
 	private int	value	= 0;
@@ -16,7 +16,7 @@ public class IntSync extends Sync {
 		return value;
 	}
 
-	public void updateValue(int value) {
+	public void value(int value) {
 		this.value = value;
 		setUpdated(true);
 	}

@@ -20,8 +20,7 @@ public class MessageReader {
 		stream.close();
 	}
 
-	public Message read() throws IOException, InstantiationException,
-			IllegalAccessException {
+	public Message read() throws IOException {
 		return MessageParser.readMessage(stream);
 	}
 

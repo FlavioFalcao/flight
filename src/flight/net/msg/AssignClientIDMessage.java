@@ -4,11 +4,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-public class SetClientIDMessage extends Message {
+public class AssignClientIDMessage extends Message {
 
-	SetClientIDMessage() {}
+	AssignClientIDMessage() {}
 
-	public SetClientIDMessage(byte source, byte newId) {
+	public AssignClientIDMessage(byte source, byte newId) {
 		super(source);
 		this.newId = newId;
 	}
@@ -35,7 +35,7 @@ public class SetClientIDMessage extends Message {
 	@Override
 	public boolean equals(Object obj) {
 		if (getClass() == obj.getClass() && super.equals(obj))
-			return newId == ((SetClientIDMessage) obj).newId;
+			return newId == ((AssignClientIDMessage) obj).newId;
 		else
 			return false;
 	}

@@ -12,8 +12,8 @@ public abstract class Sync {
 	}
 
 	private int				id			= 0;
-	private boolean			updated		= true;
-
+	
+	private boolean			updated		= false;
 	private SyncRegistry	registry	= null;
 
 	protected ByteBuffer	data		= null;
@@ -37,7 +37,7 @@ public abstract class Sync {
 	void setUpdated(boolean updated) {
 		this.updated = updated;
 		if (this.updated && registry != null)
-			registry.markSyncUpdated(this);
+			registry.updated(this);
 	}
 
 	void setRegistry(SyncRegistry registry) {
@@ -50,7 +50,7 @@ public abstract class Sync {
 		return data.array();
 	}
 
-	public void setData(byte[] data) {
+	void setData(byte[] data) {
 		this.data = ByteBuffer.wrap(data);
 		readDataToValue();
 	}

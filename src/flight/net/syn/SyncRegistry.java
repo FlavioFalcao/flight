@@ -2,32 +2,39 @@ package flight.net.syn;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
+import flight.net.err.SyncNotFoundException;
 import flight.util.ConstIterator;
+import flight.util.Filter;
+import flight.util.FilteredIterator;
 
 public class SyncRegistry implements Iterable<Sync> {
 
-	public SyncRegistry(byte id) {
-		this.id = id;
-	}
+	public SyncRegistry() {}
 
-	private byte				id;
 	private Map<Integer, Sync>	syncs	= new ConcurrentHashMap<Integer, Sync>();
 
-	public void addSync(Sync sync) {
-		sync.setRegistry(this);
-		syncs.put(sync.getId(), sync);
+	public void register(Sync sync) {
+		if (listener != null) {
+			int id = listener.getHostId() << (8 * 3);
+			synchronized (syncs) {
+				while (syncs.containsKey(++id));
+				syncs.put(id, sync);
+			}
+			sync.setId(id);
+			if (listener != null)
+				listener.syncRegistered(sync);
+		}
+		add(sync);
 	}
 
-	public void addNewSync(Sync sync) {
-		int syncId = id << (8 * 3);
-		synchronized (syncs) {
-			while (contains(++syncId));
-			sync.setId(syncId);
-			addSync(sync);
-		}
+	public void add(Sync sync) {
+		if (sync != null) {
+			sync.setRegistry(this);
+			syncs.put(sync.getId(), sync);
+		} else
+			throw new NullPointerException();
 	}
 
 	public boolean contains(int syncId) {
@@ -35,28 +42,57 @@ public class SyncRegistry implements Iterable<Sync> {
 	}
 
 	public boolean contains(Sync sync) {
-		return contains(sync.getId()) && sync.equals(syncs.get(sync.getId()));
+		if (sync != null) {
+			return contains(sync.getId()) && sync.equals(get(sync.getId()));
+		} else
+			throw new NullPointerException();
 	}
 
-	public Sync getSync(int syncId) {
+	public Sync get(int syncId) {
 		return syncs.get(syncId);
 	}
 
-	public void markSyncUpdated(Sync sync) {}
-
-	public Sync removeSync(int syncId) {
+	public Sync remove(int syncId) {
 		Sync sync = syncs.remove(syncId);
 		if (sync != null)
 			sync.setRegistry(null);
+		if (listener != null)
+			listener.syncRemoved(sync);
 		return sync;
 	}
 
-	public Sync removeSync(Sync sync) {
-		return removeSync(sync.getId());
+	public Sync remove(Sync sync) {
+		if (sync != null)
+			return remove(sync.getId());
+		else
+			throw new NullPointerException();
 	}
 
-	public void updateSync(int syncId, byte[] data) {
-		syncs.get(syncId).setData(data);
+	public Sync update(int syncId, byte[] data) throws SyncNotFoundException {
+		Sync sync = get(syncId);
+		if (sync != null) {
+			sync.setData(data);
+			return sync;
+		} else
+			throw new SyncNotFoundException(syncId);
+	}
+
+	public Sync updateAndMark(int syncId, byte[] data)
+			throws SyncNotFoundException {
+		Sync sync = update(syncId, data);
+		sync.setUpdated(true);
+		return sync;
+	}
+
+	void updated(Sync sync) {
+		if (listener != null)
+			listener.syncUpdated(sync);
+	}
+
+	private SyncRegistryHost	listener	= null;
+
+	public void addRegistryListener(SyncRegistryHost listener) {
+		this.listener = listener;
 	}
 
 	@Override
@@ -64,43 +100,30 @@ public class SyncRegistry implements Iterable<Sync> {
 		return new ConstIterator<Sync>(syncs.values().iterator());
 	}
 
-	public Iterator<Sync> iteratorUpdated() {
-		return new UpdatedIterator(iterator());
+	public Iterator<Sync> iterator(Filter<Sync> filter) {
+		return iteratorFiltered(filter);
 	}
 
-	private static class UpdatedIterator extends ConstIterator<Sync> {
+	private Iterator<Sync> iteratorFiltered(Filter<Sync> filter) {
+		return new FilteredIterator<Sync>(iterator(), filter);
+	}
 
-		public UpdatedIterator(Iterator<Sync> iterator) {
-			super(iterator);
-		}
-
-		private Sync	next;
-
-		@Override
-		public Sync next() {
-			if (hasNext()) {
-				Sync current = next;
-				next = findNext();
-				return current;
-			} else
-				throw new NoSuchElementException();
-		}
-
-		private Sync findNext() {
-			Sync next;
-			try {
-				while (!(next = super.next()).isUpdated());
-				return next;
-			} catch (NoSuchElementException e) {
-				return null;
+	public Iterable<Sync> iterable(final Filter<Sync> filter) {
+		return new Iterable<Sync>() {
+			@Override
+			public Iterator<Sync> iterator() {
+				return iteratorFiltered(filter);
 			}
-		}
+		};
+	}
 
-		@Override
-		public boolean hasNext() {
-			return next == null;
-		}
-
-	};
+	public Iterable<Sync> iterableUpdated() {
+		return iterable(new Filter<Sync>() {
+			@Override
+			public boolean select(Sync element) {
+				return element.isUpdated();
+			}
+		});
+	}
 
 }

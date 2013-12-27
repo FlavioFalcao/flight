@@ -3,7 +3,7 @@ package flight.net.msg;
 import java.util.LinkedList;
 import java.util.List;
 
-public abstract class AbstractMessageProducer implements MessageProducer {
+public class BroadcastMessageProducer implements MessageProducer {
 
 	private List<MessageHandler>	handlers	= new LinkedList<MessageHandler>();
 
@@ -15,7 +15,7 @@ public abstract class AbstractMessageProducer implements MessageProducer {
 		return handlers.toArray(new MessageHandler[handlers.size()]);
 	}
 
-	protected void broadcastMessage(Message message) {
+	public void broadcast(Message message) {
 		for (MessageHandler handler : handlers)
 			handler.handleMessage(message);
 	}

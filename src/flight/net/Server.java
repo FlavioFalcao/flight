@@ -1,10 +1,13 @@
 package flight.net;
 
 import static flight.global.Const.SERVER_ADDED_CLIENT;
+import static flight.global.Const.SERVER_CONNECTION_FAILED;
 import static flight.global.Const.SERVER_CONNECTION_LOST;
+import static flight.global.Const.SERVER_MESSAGE_RECEIVED;
 import static flight.global.Const.SERVER_REMOVED_CLIENT;
 import static flight.global.Const.SERVER_STARTED;
 import static flight.global.Const.SERVER_STOPPED;
+import static flight.global.Const.SERVER_SYNC_NOT_FOUND;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -12,232 +15,223 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import flight.global.Logger;
-import flight.net.err.TransmissionException;
-import flight.net.msg.AbstractMessageProducer;
-import flight.net.msg.AcknowledgeMessage;
+import flight.net.err.SyncNotFoundException;
 import flight.net.msg.AddSyncMessage;
+import flight.net.msg.AssignClientIDMessage;
 import flight.net.msg.DataMessage;
 import flight.net.msg.EndTransmissionMessage;
 import flight.net.msg.Message;
-import flight.net.msg.MessageProducer;
 import flight.net.msg.MessageReader;
 import flight.net.msg.MessageWriter;
-import flight.net.msg.NullMessage;
 import flight.net.msg.RemoveSyncMessage;
-import flight.net.msg.SetClientIDMessage;
-import flight.net.msg.StartTransmissionMessage;
 import flight.net.msg.StringMessage;
 import flight.net.msg.UpdateSyncMessage;
 import flight.net.syn.Sync;
-import flight.net.syn.SyncRegistry;
 
-public class Server extends AbstractMessageProducer implements MessageProducer,
-		Runnable {
+public class Server extends Host {
 
 	public Server() {}
 
-	public Server(int hostPort) {
-		this.hostPort = hostPort;
+	public Server(int serverPort) {
+		this.serverPort = serverPort;
 	}
 
-	private int								hostPort	= 5139;
+	private int				serverPort	= 5139;
 
-	private Set<Class<? extends Message>>	caughtMessages,
-			rebroadcastMessages;
+	private ServerSocket	server;
+	private ExecutorService	threadPool;
+	private boolean			running		= false;
 
 	{
-		caughtMessages = new LinkedHashSet<Class<? extends Message>>();
-		caughtMessages.add(NullMessage.class);
-		caughtMessages.add(StartTransmissionMessage.class);
-		caughtMessages.add(EndTransmissionMessage.class);
-		caughtMessages.add(AcknowledgeMessage.class);
-		caughtMessages.add(SetClientIDMessage.class);
-		caughtMessages.add(AddSyncMessage.class);
-		caughtMessages.add(UpdateSyncMessage.class);
-		caughtMessages.add(RemoveSyncMessage.class);
+		setId((byte) 0);
+	}
 
+	public void start() throws IOException {
+		threadPool = Executors.newCachedThreadPool();
+		clients = new ConcurrentSkipListMap<Byte, ClientConnection>();
+		server = new ServerSocket(serverPort);
+		connectionReceiver.start();
+		running = true;
+		Logger.logOutput(SERVER_STARTED, serverPort);
+	}
+
+	public void stop() {
+		running = false;
+		try {
+			server.close();
+		} catch (IOException e) {}
+		for (ClientConnection client : clients.values())
+			client.disconnect();
+		threadPool.shutdown();
+		Logger.logOutput(SERVER_STOPPED);
+	}
+
+	private Map<Byte, ClientConnection>		clients;
+
+	private Set<Class<? extends Message>>	rebroadcastMessages;
+	{
 		rebroadcastMessages = new LinkedHashSet<Class<? extends Message>>();
 		rebroadcastMessages.add(DataMessage.class);
 		rebroadcastMessages.add(StringMessage.class);
 	}
 
-	private ServerSocket					server;
-	private ExecutorService					threadPool;
-	private boolean							running		= false;
-
-	private Map<Byte, ClientConnection>		clients;
-	private SyncRegistry					syncs;
-
-	private void initServer() throws IOException {
-		server = new ServerSocket(hostPort);
-		threadPool = Executors.newCachedThreadPool();
-		clients = new ConcurrentSkipListMap<Byte, ClientConnection>();
-		syncs = new SyncRegistry((byte) 0);
-		running = true;
-		Logger.logOutput(SERVER_STARTED, hostPort);
-	}
-
-	private void addClient(ClientConnection client) throws IOException {
-		client.id = 0;
-		synchronized (clients) {
-			while (clients.containsKey(++client.id));
-			client.write(new SetClientIDMessage((byte) 0, client.id));
-			clients.put(client.id, client);
-		}
-		for (Sync sync : syncs) {
-			client.write(new AddSyncMessage((byte) 0, sync));
-		}
-	}
-
-	private void removeClient(byte id) {
-		ClientConnection client;
-		client = clients.remove(id);
-		if (client != null) {
-			try {
-				client.write(new EndTransmissionMessage((byte) 0));
-				client.clientConnection.close();
-			} catch (NullPointerException | IOException e) {}
-			Logger.logOutput(SERVER_REMOVED_CLIENT, id);
-			for (Sync sync : syncs) {
-				if (sync.getClientId() == client.id)
-					rebroadcastMessage(new RemoveSyncMessage((byte) 0,
-							sync.getId()));
-			}
-		}
-	}
-
-	private void handleMessage(Message message) throws IOException {
-		if (caughtMessages.contains(message.getClass())) {
-			if (message instanceof EndTransmissionMessage) {
-				removeClient(message.getSource());
-			} else if (message instanceof AddSyncMessage) {
-				AddSyncMessage addMessage = (AddSyncMessage) message;
-				syncs.addSync(addMessage.getSync());
-				rebroadcastMessage(addMessage);
-			} else if (message instanceof UpdateSyncMessage) {
-				UpdateSyncMessage updateMessage = (UpdateSyncMessage) message;
-				syncs.updateSync(updateMessage.getSyncId(),
-						updateMessage.getSyncData());
-				rebroadcastMessage(message);
-			} else if (message instanceof RemoveSyncMessage) {
-				syncs.removeSync(((RemoveSyncMessage) message).getSyncId());
-				rebroadcastMessage(message);
-			}
-		} else if (rebroadcastMessages.contains(message.getClass())) {
-			rebroadcastMessage(message);
-		} else {
-			broadcastMessage(message);
-		}
-	}
-
-	private void rebroadcastMessage(Message message) {
-		for (Entry<Byte, ClientConnection> entry : clients.entrySet())
-			if (entry.getKey() != message.getSource()) {
-				try {
-					entry.getValue().write(message);
-				} catch (IOException e) {
-					removeClient(entry.getKey());
-				}
-			}
-	}
-
-	private class ClientConnection implements Runnable {
+	private class ClientConnection {
 
 		public ClientConnection(Socket clientConnection) {
 			this.clientConnection = clientConnection;
 		}
 
-		public Socket			clientConnection;
-		private MessageWriter	outputToClient;
-		public MessageReader	inputFromClient;
+		private byte	id			= 0;
+		private boolean	connected	= false;
 
-		public byte				id;
-		public boolean			connected	= false;
-
-		private void initClientConnection() throws IOException,
-				InstantiationException, IllegalAccessException,
-				TransmissionException {
+		public void connect() throws IOException {
 			// initializing networking objects
 			outputToClient = new MessageWriter(
 					clientConnection.getOutputStream());
 			inputFromClient = new MessageReader(
 					clientConnection.getInputStream());
 
-			// read and verify transmission header from client
-			Message start = inputFromClient.read();
-			if (!start.equals(new StartTransmissionMessage((byte) -1)))
-				throw new TransmissionException("Connection not accepted");
-
-			// send transmission header and initialize client connection state
-			outputToClient.write(new StartTransmissionMessage((byte) 0));
-			addClient(this);
+			// mark client as connected
 			connected = true;
+
+			// initialize client state
+			synchronized (clients) {
+				while (clients.containsKey(++id));
+				send(new AssignClientIDMessage(getId(), id));
+				clients.put(id, this);
+			}
+			for (Sync sync : registry)
+				send(new AddSyncMessage(getId(), sync));
+			threadPool.execute(messageReceiver);
 			Logger.logOutput(SERVER_ADDED_CLIENT, id, clientConnection
 					.getInetAddress().getCanonicalHostName());
 		}
 
-		@Override
-		public void run() {
+		public void disconnect() {
+			connected = false;
+			clients.remove(id);
 			try {
-				initClientConnection();
-				while (connected) {
-					handleMessage(inputFromClient.read());
+				send(new EndTransmissionMessage(getId()));
+				if (!clientConnection.isClosed())
+					clientConnection.close();
+			} catch (IOException e) {}
+			Logger.logOutput(SERVER_REMOVED_CLIENT, id);
+			for (Sync sync : registry) {
+				if (sync.getClientId() == id)
+					rebroadcastMessage(new RemoveSyncMessage(getId(),
+							sync.getId()));
+			}
+		}
+
+		private Socket			clientConnection;
+		private MessageWriter	outputToClient;
+		private MessageReader	inputFromClient;
+
+		public void send(Message message) {
+			if (connected) {
+				try {
+					synchronized (outputToClient) {
+						outputToClient.write(message);
+					}
+				} catch (IOException e) {
+					Logger.logError(SERVER_CONNECTION_LOST, id);
+					disconnect();
 				}
-			} catch (InstantiationException | IllegalAccessException
-					| IOException | TransmissionException e) {
-				Logger.logError(SERVER_CONNECTION_LOST, id);
-			}
-			removeClient(id);
-		}
-
-		public void write(Message message) throws IOException {
-			synchronized (outputToClient) {
-				outputToClient.write(message);
 			}
 		}
 
-	}
-
-	public void stop() {
-		if (running) {
-			running = false;
-			for (Byte id : clients.keySet())
-				removeClient(id);
-			Logger.logOutput(SERVER_STOPPED);
-		} else
-			running = false;
-	}
-
-	public void runWithExceptions() throws IOException {
-		initServer();
-		while (running) {
-			final Socket clientConnection = server.accept();
-			threadPool.execute(new ClientConnection(clientConnection));
+		private Runnable	messageReceiver;
+		{
+			messageReceiver = new Runnable() {
+				@Override
+				public void run() {
+					try {
+						while (connected) {
+							Message message = inputFromClient.read();
+							Logger.logOutput(SERVER_MESSAGE_RECEIVED, message);
+							if (caughtMessages.contains(message.getClass()))
+								handleMessage(message);
+							else if (rebroadcastMessages.contains(message
+									.getClass()))
+								rebroadcastMessage(message);
+							else
+								messager.broadcast(message);
+						}
+					} catch (IOException e) {
+						if (connected) {
+							Logger.logError(SERVER_CONNECTION_LOST, id);
+							disconnect();
+						}
+					}
+				}
+			};
 		}
-		stop();
+
 	}
 
-	@Override
-	public void run() {
-		try {
-			runWithExceptions();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	private void handleMessage(Message message) throws IOException {
+		if (message instanceof EndTransmissionMessage) {
+			ClientConnection client = clients.get(message.getSource());
+			if (client != null)
+				client.disconnect();
+		} else if (message instanceof AddSyncMessage) {
+			AddSyncMessage addMessage = (AddSyncMessage) message;
+			registry.add(addMessage.getSync());
+			rebroadcastMessage(addMessage);
+		} else if (message instanceof UpdateSyncMessage) {
+			UpdateSyncMessage updateMessage = (UpdateSyncMessage) message;
+			try {
+				registry.update(updateMessage.getSyncId(),
+						updateMessage.getSyncData());
+				rebroadcastMessage(message);
+			} catch (SyncNotFoundException e) {
+				Logger.logError(SERVER_SYNC_NOT_FOUND,
+						updateMessage.getSyncId());
+			}
+		} else if (message instanceof RemoveSyncMessage) {
+			registry.remove(((RemoveSyncMessage) message).getSyncId());
+			rebroadcastMessage(message);
 		}
+	}
+
+	private void rebroadcastMessage(Message message) {
+		for (ClientConnection client : clients.values())
+			if (client.id != message.getSource())
+				client.send(message);
+	}
+
+	Thread	connectionReceiver;
+	{
+		connectionReceiver = new Thread() {
+			@Override
+			public void run() {
+				while (running) {
+					ClientConnection client = null;
+					try {
+						client = new ClientConnection(server.accept());
+						client.connect();
+					} catch (IOException e) {
+						if (running) {
+							if (client != null)
+								client.disconnect();
+							Logger.logOutput(SERVER_CONNECTION_FAILED);
+						}
+					}
+				}
+			}
+		};
 	}
 
 	public static void main(String[] args) throws UnknownHostException,
 			IOException {
 		Server server = new Server();
-		server.runWithExceptions();
+		server.start();
 	}
 
 }
