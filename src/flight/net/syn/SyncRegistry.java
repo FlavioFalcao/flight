@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import flight.net.err.SyncNotFoundException;
-import flight.util.ConstIterator;
+import flight.util.ConcatenatedIterator;
 import flight.util.Filter;
 import flight.util.FilteredIterator;
 
@@ -97,7 +97,25 @@ public class SyncRegistry implements Iterable<Sync> {
 
 	@Override
 	public Iterator<Sync> iterator() {
-		return new ConstIterator<Sync>(syncs.values().iterator());
+
+		// TODO: revise sync iteration order
+
+		Filter<Sync> primitiveSyncFilter = new Filter<Sync>() {
+			@Override
+			public boolean select(Sync element) {
+				return !(element instanceof ObjectSync);
+			}
+		};
+		Filter<Sync> objectSyncFilter = new Filter<Sync>() {
+			@Override
+			public boolean select(Sync element) {
+				return element instanceof ObjectSync;
+			}
+		};
+		return new ConcatenatedIterator<Sync>(new FilteredIterator<Sync>(syncs
+				.values().iterator(), primitiveSyncFilter),
+				new FilteredIterator<Sync>(syncs.values().iterator(),
+						objectSyncFilter));
 	}
 
 	public Iterator<Sync> iterator(Filter<Sync> filter) {

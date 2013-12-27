@@ -2,10 +2,11 @@ package flight.global;
 
 public abstract class Const {
 
-	public static final String	COULD_NOT_INSTANTIATE		= "warning: parser could not instantiate message: %s";
+	public static final String	COULD_NOT_INSTANTIATE		= "warning: could not instantiate class: %s";
 
 	public static final String	CLIENT_CONNECTING			= "client connecting to server at %s:%d...";
 	public static final String	CLIENT_STARTED				= "client connected with id = %d";
+	public static final String	CLIENT_MESSAGE_SENT			= "client sent message: %s";
 	public static final String	CLIENT_MESSAGE_RECEIVED		= "client received message: %s";
 	public static final String	CLIENT_CONNECTION_LOST		= "client connection to server lost";
 	public static final String	CLIENT_STOPPED				= "client stopped";
@@ -21,5 +22,8 @@ public abstract class Const {
 	public static final String	SERVER_STOPPED				= "server stopped";
 
 	public static final String	SERVER_SYNC_NOT_FOUND		= "warning: client could not find sync with id = %d";
+
+	public static final String	OBJSYNC_SERIALIZE_ERROR		= "warning: sync object not serializable";
+	public static final String	OBJSYNC_REFRESH_ERROR		= "warning: sync object could not be refreshed";
 
 }

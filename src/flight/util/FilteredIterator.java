@@ -3,8 +3,7 @@ package flight.util;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public class FilteredIterator<E> extends ConstIterator<E> implements
-		Iterator<E> {
+public class FilteredIterator<E> extends ConstIterator<E> {
 
 	public FilteredIterator(Iterator<E> iterator, Filter<E> filter) {
 		super(iterator);

@@ -123,9 +123,11 @@ public class Server extends Host {
 			} catch (IOException e) {}
 			Logger.logOutput(SERVER_REMOVED_CLIENT, id);
 			for (Sync sync : registry) {
-				if (sync.getClientId() == id)
+				if (sync.getClientId() == id) {
 					rebroadcastMessage(new RemoveSyncMessage(getId(),
 							sync.getId()));
+					registry.remove(sync);
+				}
 			}
 		}
 

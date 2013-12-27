@@ -11,7 +11,15 @@ public abstract class SyncParser {
 	public static BidirectionalMap<Byte, Class<? extends Sync>>	syncCodes	= new BidirectionalMap<Byte, Class<? extends Sync>>();
 
 	static {
-		syncCodes.put((byte) 0, IntSync.class);
+		syncCodes.put((byte) 0, ByteSync.class);
+		syncCodes.put((byte) 1, ShortSync.class);
+		syncCodes.put((byte) 2, IntSync.class);
+		syncCodes.put((byte) 3, LongSync.class);
+		syncCodes.put((byte) 4, FloatSync.class);
+		syncCodes.put((byte) 5, DoubleSync.class);
+		syncCodes.put((byte) 6, BooleanSync.class);
+		syncCodes.put((byte) 7, CharSync.class);
+		syncCodes.put((byte) 8, ObjectSync.class);
 	}
 
 	public static Sync readSync(ObjectInputStream stream) throws IOException,
@@ -19,7 +27,7 @@ public abstract class SyncParser {
 		byte syncCode = stream.readByte();
 		Class<? extends Sync> syncClass = syncCodes.get(syncCode);
 		Sync sync = syncClass.newInstance();
-		byte[] syncData = new byte[stream.readByte()];
+		byte[] syncData = new byte[stream.readShort()];
 		stream.read(syncData);
 		sync.setData(syncData);
 		return sync;
@@ -31,7 +39,7 @@ public abstract class SyncParser {
 		byte syncCode = syncCodes.inverse().get(syncClass);
 		stream.writeByte(syncCode);
 		byte[] syncData = sync.getData();
-		stream.writeByte(syncData.length);
+		stream.writeShort(syncData.length);
 		stream.write(syncData);
 	}
 

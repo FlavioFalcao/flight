@@ -1,8 +1,11 @@
 package flight.net.syn;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 
-public abstract class Sync {
+@SuppressWarnings("serial")
+public abstract class Sync implements Serializable {
 
 	Sync() {}
 
@@ -12,9 +15,9 @@ public abstract class Sync {
 	}
 
 	private int				id			= 0;
-	
+
 	private boolean			updated		= false;
-	private SyncRegistry	registry	= null;
+	protected SyncRegistry	registry	= null;
 
 	protected ByteBuffer	data		= null;
 
@@ -45,7 +48,7 @@ public abstract class Sync {
 	}
 
 	public byte[] getData() {
-		if (isUpdated())
+		if (isUpdated() || data == null)
 			writeValueToData();
 		return data.array();
 	}
@@ -58,6 +61,28 @@ public abstract class Sync {
 	protected abstract void readDataToValue();
 
 	protected abstract void writeValueToData();
+
+	private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+		if (registry != null) {
+			out.writeBoolean(true);
+			out.writeInt(getId());
+		} else {
+			out.writeBoolean(false);
+			out.writeByte(getData().length);
+			out.write(getData());
+		}
+	}
+
+	private void readObject(java.io.ObjectInputStream in) throws IOException,
+			ClassNotFoundException {
+		if (in.readBoolean()) {
+			setId(in.readInt());
+		} else {
+			byte[] data = new byte[in.readByte()];
+			in.read(data, 0, data.length);
+			setData(data);
+		}
+	}
 
 	@Override
 	public boolean equals(Object obj) {

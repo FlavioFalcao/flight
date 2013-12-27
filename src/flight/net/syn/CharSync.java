@@ -3,21 +3,21 @@ package flight.net.syn;
 import java.nio.ByteBuffer;
 
 @SuppressWarnings("serial")
-public class IntSync extends Sync {
+public class CharSync extends Sync {
 
-	IntSync() {}
+	CharSync() {}
 
-	public IntSync(int value) {
+	public CharSync(char value) {
 		value(value);
 	}
 
-	private int	value	= 0;
+	private char	value	= 0;
 
-	public int value() {
+	public char value() {
 		return value;
 	}
 
-	public void value(int value) {
+	public void value(char value) {
 		if (this.value != value) {
 			this.value = value;
 			setUpdated(true);
@@ -26,18 +26,18 @@ public class IntSync extends Sync {
 
 	@Override
 	protected void readDataToValue() {
-		value = data.getInt();
+		value = data.getChar();
 	}
 
 	@Override
 	protected void writeValueToData() {
-		data = ByteBuffer.allocate(Integer.SIZE / 8).putInt(value);
+		data = ByteBuffer.allocate(Character.SIZE / 8).putChar(value);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
 		if (getClass() == obj.getClass() && super.equals(obj))
-			return value == ((IntSync) obj).value;
+			return value == ((CharSync) obj).value;
 		else
 			return false;
 	}

@@ -6,6 +6,7 @@ import static flight.global.Const.CLIENT_MESSAGE_RECEIVED;
 import static flight.global.Const.CLIENT_STARTED;
 import static flight.global.Const.CLIENT_STOPPED;
 import static flight.global.Const.CLIENT_SYNC_NOT_FOUND;
+import static flight.global.Const.CLIENT_MESSAGE_SENT;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -89,6 +90,7 @@ public class Client extends Host {
 				synchronized (outputToServer) {
 					outputToServer.write(message);
 				}
+				Logger.logOutput(CLIENT_MESSAGE_SENT, message);
 			} catch (IOException e) {
 				Logger.logError(CLIENT_CONNECTION_LOST);
 				disconnect();
@@ -139,8 +141,8 @@ public class Client extends Host {
 						updateMessage.getSyncId());
 			}
 		} else if (message instanceof RemoveSyncMessage) {
-			registry.remove(((RemoveSyncMessage) message).getSyncId());
 			messager.broadcast(message);
+			registry.remove(((RemoveSyncMessage) message).getSyncId());
 		}
 
 	}

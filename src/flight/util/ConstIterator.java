@@ -17,7 +17,6 @@ public class ConstIterator<E> implements Iterator<E> {
 
 	@Override
 	public E next() {
-		// TODO Auto-generated method stub
 		return iterator.next();
 	}
 
