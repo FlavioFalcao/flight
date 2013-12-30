@@ -230,7 +230,7 @@ public class Server extends Host {
 			}
 		};
 	}
-	
+
 	{
 		registryListener = new SyncRegistryHost() {
 			@Override
@@ -246,8 +246,7 @@ public class Server extends Host {
 
 			@Override
 			public void syncUpdated(Sync sync) {
-				if (sync.getClientId() == getId())
-					rebroadcastMessage(new UpdateSyncMessage(getId(), sync));
+				rebroadcastMessage(new UpdateSyncMessage(getId(), sync));
 			}
 
 			@Override

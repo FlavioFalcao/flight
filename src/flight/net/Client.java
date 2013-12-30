@@ -162,8 +162,7 @@ public class Client extends Host {
 
 			@Override
 			public void syncUpdated(Sync sync) {
-				if (sync.getClientId() == getId())
-					send(new UpdateSyncMessage(getId(), sync));
+				send(new UpdateSyncMessage(getId(), sync));
 			}
 
 			@Override
