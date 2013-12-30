@@ -7,10 +7,11 @@ import java.awt.Shape;
 
 @SuppressWarnings("serial")
 public class Ship extends SpaceObj {
-	public Ship(float x, float y, float theta) {
-		super(x, y, theta);
-	}
 
+	public Ship() {
+		super(10);
+	}
+	
 	private static Shape	shape;
 	{
 		int[] xs = { 10, -10, -10 }, ys = { 0, 10, -10 };

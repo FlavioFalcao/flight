@@ -3,19 +3,29 @@ package flight.demo.asteroids;
 import java.awt.Graphics2D;
 import java.io.Serializable;
 
+import flight.net.syn.BooleanSync;
 import flight.net.syn.FloatSync;
 import flight.net.syn.ObjectSync;
 import flight.net.syn.SyncRegistry;
 
 @SuppressWarnings("serial")
 public abstract class SpaceObj implements Serializable {
-	protected SpaceObj(float x, float y, float theta) {
-		this.x = new FloatSync(x);
-		this.y = new FloatSync(y);
-		this.theta = new FloatSync(theta);
+
+	public SpaceObj(float size) {
+		this.size = size;
 	}
 
-	public FloatSync	x, y;
+	public BooleanSync	alive	= new BooleanSync(false);
+
+	public boolean isAlive() {
+		return alive.value();
+	}
+
+	public void setAlive(boolean alive) {
+		this.alive.value(alive);
+	}
+
+	public FloatSync	x	= new FloatSync(0), y = new FloatSync(0);
 
 	public float getX() {
 		return x.value();
@@ -33,7 +43,29 @@ public abstract class SpaceObj implements Serializable {
 		this.y.value(y);
 	}
 
-	public float	dx, dy;
+	public FloatSync	theta	= new FloatSync(0);
+
+	public float getTheta() {
+		return theta.value();
+	}
+
+	private void setTheta(float theta) {
+		this.theta.value(theta);
+	}
+
+	public void turn(float dtheta) {
+		theta.value(theta.value() + dtheta);
+	}
+
+	public void spawn(float x, float y, float theta) {
+		setAlive(true);
+		setX(x);
+		setY(y);
+		setTheta(theta);
+		dx = dy = 0;
+	}
+
+	protected float	dx, dy;
 
 	public float getDX() {
 		return dx;
@@ -51,16 +83,6 @@ public abstract class SpaceObj implements Serializable {
 		dy += d2y;
 	}
 
-	public FloatSync	theta;
-
-	public float getTheta() {
-		return theta.value();
-	}
-
-	public void turn(float dtheta) {
-		theta.value(theta.value() + dtheta);
-	}
-
 	public void forward(float accel) {
 		incDX((float) (Math.cos(getTheta()) * accel));
 		incDY((float) (Math.sin(getTheta()) * accel));
@@ -69,6 +91,20 @@ public abstract class SpaceObj implements Serializable {
 	public void update() {
 		setX(getX() + getDX());
 		setY(getY() + getDY());
+	}
+
+	private float	size;
+
+	public float getSize() {
+		return size;
+	}
+
+	public boolean isCollision(SpaceObj obj) {
+		return isAlive()
+				&& obj.isAlive()
+				&& Math.sqrt(Math.pow(getX() - obj.getX(), 2)
+						+ Math.pow(getY() - obj.getY(), 2)) < getSize()
+						+ obj.getSize();
 	}
 
 	public abstract void draw(Graphics2D g2);
@@ -92,6 +128,7 @@ public abstract class SpaceObj implements Serializable {
 
 	public void register(SyncRegistry registry) {
 		if (syncId == -1) {
+			registry.register(alive);
 			registry.register(x);
 			registry.register(y);
 			registry.register(theta);

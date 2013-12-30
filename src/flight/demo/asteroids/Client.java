@@ -6,6 +6,7 @@ import static java.awt.event.KeyEvent.VK_DOWN;
 import static java.awt.event.KeyEvent.VK_LEFT;
 import static java.awt.event.KeyEvent.VK_RIGHT;
 import static java.awt.event.KeyEvent.VK_S;
+import static java.awt.event.KeyEvent.VK_SPACE;
 import static java.awt.event.KeyEvent.VK_UP;
 import static java.awt.event.KeyEvent.VK_W;
 import static javax.swing.JFrame.EXIT_ON_CLOSE;
@@ -17,6 +18,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.geom.AffineTransform;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 
 import javax.swing.JFrame;
@@ -43,8 +46,8 @@ public class Client implements Runnable, KeyListener {
 
 	private flight.net.Client				flight;
 
-	public static final int					WIDTH		= 800;
-	public static final int					HEIGHT		= 600;
+	public static final int					WIDTH			= 800;
+	public static final int					HEIGHT			= 600;
 
 	private JFrame							window;
 	{
@@ -56,17 +59,15 @@ public class Client implements Runnable, KeyListener {
 		window.addKeyListener(this);
 	}
 
-	private static final AffineTransform	identity	= new AffineTransform();
+	private static final AffineTransform	identity		= new AffineTransform();
 
-	private static Filter<Sync>				spaceObjFilter;
-	{
-		spaceObjFilter = new Filter<Sync>() {
-			@Override
-			public boolean select(Sync element) {
-				return element instanceof ObjectSync<?>;
-			}
-		};
-	}
+	public static final Filter<Sync>		spaceObjFilter	= new Filter<Sync>() {
+																@Override
+																public boolean select(
+																		Sync element) {
+																	return element instanceof ObjectSync<?>;
+																}
+															};
 
 	@SuppressWarnings("serial")
 	private class RenderCanvas extends JPanel {
@@ -78,24 +79,24 @@ public class Client implements Runnable, KeyListener {
 			g2.clearRect(0, 0, getWidth(), getHeight());
 			for (Sync objSync : flight.registry().iterable(spaceObjFilter)) {
 				SpaceObj obj = ((ObjectSync<SpaceObj>) objSync).value();
-				g2.setTransform(identity);
-				g2.translate(obj.getX(), obj.getY());
-				g2.rotate(obj.getTheta());
-				obj.draw(g2);
+				if (obj.isAlive()) {
+					g2.setTransform(identity);
+					g2.translate(obj.getX(), obj.getY());
+					g2.rotate(obj.getTheta());
+					obj.draw(g2);
+				}
 			}
 		}
 	}
 
-	private static long	UPDATES_PER_SECOND	= 20;
-	private static long	UPDATE_DURATION		= 1000 / UPDATES_PER_SECOND;
+	public static long	UPDATES_PER_SECOND	= 20;
+	public static long	UPDATE_DURATION		= 1000 / UPDATES_PER_SECOND;
 
 	@Override
 	public void run() {
 		try {
 			flight.connect();
-			ship = new Ship(random.nextFloat() * WIDTH, random.nextFloat()
-					* HEIGHT, (float) (random.nextFloat() * (2 * Math.PI)));
-			ship.register(flight.registry());
+			init();
 			window.setVisible(true);
 			while (true) {
 				update();
@@ -107,39 +108,69 @@ public class Client implements Runnable, KeyListener {
 		} catch (InterruptedException e) {}
 	}
 
+	private static int		BULLETS	= 10;
+
+	private Ship			ship;
+	private List<Bullet>	bullets	= new LinkedList<Bullet>();
+
+	private void init() {
+		ship = new Ship();
+		ship.register(flight.registry());
+		for (int i = 0; i < BULLETS; ++i) {
+			Bullet bullet = new Bullet();
+			bullet.register(flight.registry());
+			bullets.add(bullet);
+		}
+	}
+
 	private static float	ACCEL_PER_SECOND	= 10;
 	private static float	ACCEL_UPDATE		= ACCEL_PER_SECOND
 														/ UPDATES_PER_SECOND;
 	private static float	TURN_PER_SECOND		= (float) (Math.PI / 2);
 	private static float	TURN_UPDATE			= TURN_PER_SECOND
 														/ UPDATES_PER_SECOND;
-
-	private Ship			ship;
 	private Random			random				= new Random();
 
 	private void update() {
-		if (up)
-			ship.forward(ACCEL_UPDATE);
-		if (left)
-			ship.turn(-TURN_UPDATE);
-		if (down)
-			ship.forward(-ACCEL_UPDATE);
-		if (right)
-			ship.turn(TURN_UPDATE);
-		ship.update();
-		if (ship.getX() < 0 || WIDTH < ship.getX()) {
-			float mod = ship.getX() % WIDTH;
-			ship.setX(0 < mod ? mod : mod + WIDTH);
+		if (ship.isAlive()) {
+			if (fire)
+				for (Bullet bullet : bullets)
+					if (!bullet.isAlive()) {
+						bullet.spawn(ship.getX(), ship.getY(), ship.getTheta(),
+								ship.getDX(), ship.getDY());
+						break;
+					}
+
+			if (up)
+				ship.forward(ACCEL_UPDATE);
+			if (left)
+				ship.turn(-TURN_UPDATE);
+			if (down)
+				ship.forward(-ACCEL_UPDATE);
+			if (right)
+				ship.turn(TURN_UPDATE);
+			ship.update();
+			if (ship.getX() < 0 || WIDTH < ship.getX()) {
+				float mod = ship.getX() % WIDTH;
+				ship.setX(0 < mod ? mod : mod + WIDTH);
+			}
+			if (ship.getY() < 0 || HEIGHT < ship.getY()) {
+				float mod = ship.getY() % HEIGHT;
+				ship.setY(0 < mod ? mod : mod + HEIGHT);
+			}
+		} else {
+			if (fire)
+				ship.spawn(random.nextFloat() * WIDTH, random.nextFloat()
+						* HEIGHT, (float) (random.nextFloat() * (2 * Math.PI)));
 		}
-		if (ship.getY() < 0 || HEIGHT < ship.getY()) {
-			float mod = ship.getY() % HEIGHT;
-			ship.setY(0 < mod ? mod : mod + HEIGHT);
-		}
+		for (Bullet bullet : bullets)
+			if (bullet.isAlive())
+				bullet.update();
 	}
 
-	private boolean	up, left, down, right;
+	private boolean	up, left, down, right, fire;
 	{
-		up = left = down = right = false;
+		up = left = down = right = fire = false;
 	}
 
 	@Override
@@ -160,6 +191,9 @@ public class Client implements Runnable, KeyListener {
 		case VK_RIGHT:
 		case VK_D:
 			right = true;
+			break;
+		case VK_SPACE:
+			fire = true;
 			break;
 		}
 	}
@@ -182,6 +216,9 @@ public class Client implements Runnable, KeyListener {
 		case VK_RIGHT:
 		case VK_D:
 			right = false;
+			break;
+		case VK_SPACE:
+			fire = false;
 			break;
 		}
 	}
