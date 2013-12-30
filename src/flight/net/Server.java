@@ -33,6 +33,7 @@ import flight.net.msg.RemoveSyncMessage;
 import flight.net.msg.StringMessage;
 import flight.net.msg.UpdateSyncMessage;
 import flight.net.syn.Sync;
+import flight.net.syn.SyncRegistryHost;
 
 public class Server extends Host {
 
@@ -228,6 +229,34 @@ public class Server extends Host {
 				}
 			}
 		};
+	}
+	
+	{
+		registryListener = new SyncRegistryHost() {
+			@Override
+			public byte getHostId() {
+				return getId();
+			}
+
+			@Override
+			public void syncRegistered(Sync sync) {
+				if (sync.getClientId() == getId())
+					rebroadcastMessage(new AddSyncMessage(getId(), sync));
+			}
+
+			@Override
+			public void syncUpdated(Sync sync) {
+				if (sync.getClientId() == getId())
+					rebroadcastMessage(new UpdateSyncMessage(getId(), sync));
+			}
+
+			@Override
+			public void syncRemoved(Sync sync) {
+				if (sync.getClientId() == getId())
+					rebroadcastMessage(new RemoveSyncMessage(getId(), sync));
+			}
+		};
+		registry.addRegistryListener(registryListener);
 	}
 
 	public static void main(String[] args) throws UnknownHostException,
