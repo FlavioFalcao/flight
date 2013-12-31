@@ -1,5 +1,7 @@
 package flight.demo.asteroids;
 
+import static flight.demo.asteroids.Server.UPDATES_PER_SECOND;
+import static flight.demo.asteroids.Server.UPDATE_DURATION;
 import static java.awt.event.KeyEvent.VK_A;
 import static java.awt.event.KeyEvent.VK_D;
 import static java.awt.event.KeyEvent.VK_DOWN;
@@ -21,6 +23,8 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -30,24 +34,90 @@ import flight.net.syn.ObjectSync;
 import flight.net.syn.Sync;
 import flight.util.Filter;
 
+/**
+ * <p>
+ * The asteroids client. Maintains a single player's avatar {@link Ship},
+ * connects to an asteroids {@link Server}, and provides an graphical interface
+ * to interact with the the game. It also wraps a flight engine
+ * {@link flight.net.Client} which provides network synchronization.
+ * </p>
+ * <p>
+ * Once {@link #run()}, this {@link Client} connect to its assigned asteroids
+ * {@link Server} with its member flight engine {@link flight.net.Client},
+ * synchronize with that {@link Server}'s game environment, and present a
+ * graphical user interface for game play.
+ * </p>
+ * 
+ * @author Colby Horn
+ * @see Server
+ */
 public class Client implements Runnable, KeyListener {
 
+	/**
+	 * Constructs a new {@link Client}, wrapping the default flight engine
+	 * {@link flight.net.Client}.
+	 */
 	public Client() {
 		flight = new flight.net.Client();
 	}
 
+	/**
+	 * Constructs a new {@link Client}, wrapping a flight engine
+	 * {@link flight.net.Client} set to connect to the specified server.
+	 * 
+	 * @param serverName
+	 *            the server to which the member {@link flight.net.Client} will
+	 *            connect
+	 */
 	public Client(String serverName) {
 		flight = new flight.net.Client(serverName);
 	}
 
+	/**
+	 * Constructs a new {@link Client}, wrapping a flight engine
+	 * {@link flight.net.Client} set to connect to the specified server on the
+	 * specified port.
+	 * 
+	 * @param serverName
+	 *            the server to which the member {@link flight.net.Client} will
+	 *            connect
+	 * @param serverPort
+	 *            the server port to which the member {@link flight.net.Client}
+	 *            will connect
+	 */
 	public Client(String serverName, int serverPort) {
 		flight = new flight.net.Client(serverName, serverPort);
 	}
 
-	private flight.net.Client				flight;
+	private flight.net.Client	flight;
 
-	public static final int					WIDTH			= 800;
-	public static final int					HEIGHT			= 600;
+	/**
+	 * The width, in pixels, of the graphic game environment;
+	 */
+	public static final int		WIDTH	= 800;
+
+	/**
+	 * The height, in pixels, of the graphic game environment;
+	 */
+	public static final int		HEIGHT	= 600;
+
+	/**
+	 * Wraps the position of the given {@link SpaceObj} into the bounds of the
+	 * game environment
+	 * 
+	 * @param obj
+	 *            the {@link SpaceObj} to be repositioned
+	 */
+	public static void wrap(SpaceObj obj) {
+		if (obj.getX() < 0 || WIDTH < obj.getX()) {
+			float mod = obj.getX() % WIDTH;
+			obj.setX(0 < mod ? mod : mod + WIDTH);
+		}
+		if (obj.getY() < 0 || HEIGHT < obj.getY()) {
+			float mod = obj.getY() % HEIGHT;
+			obj.setY(0 < mod ? mod : mod + HEIGHT);
+		}
+	}
 
 	private JFrame							window;
 	{
@@ -59,28 +129,40 @@ public class Client implements Runnable, KeyListener {
 		window.addKeyListener(this);
 	}
 
-	private static final AffineTransform	identity		= new AffineTransform();
+	/**
+	 * A {@link Filter} that selects only {@link ObjectSync}s. Because the only
+	 * objects (as opposed to primitives) synchronized the asteroid game are
+	 * {@link SpaceObj}s, selecting all {@link ObjectSync}s implicitly selects
+	 * only {@link SpaceObj}s.
+	 */
+	public static final Filter<Sync>		SPACE_OBJ_FILTER	= new Filter<Sync>() {
+																	@Override
+																	public boolean select(
+																			Sync element) {
+																		return element instanceof ObjectSync<?>;
+																	}
+																};
 
-	public static final Filter<Sync>		spaceObjFilter	= new Filter<Sync>() {
-																@Override
-																public boolean select(
-																		Sync element) {
-																	return element instanceof ObjectSync<?>;
-																}
-															};
+	private static final AffineTransform	IDENTITY			= new AffineTransform();
 
+	/**
+	 * A canvas for graphically rendering the game environment.
+	 */
 	@SuppressWarnings("serial")
 	private class RenderCanvas extends JPanel {
-		@SuppressWarnings("unchecked")
 		@Override
 		public void paint(Graphics g) {
 			Graphics2D g2 = (Graphics2D) g;
+			// clear the screen
 			g2.setBackground(Color.BLACK);
 			g2.clearRect(0, 0, getWidth(), getHeight());
-			for (Sync objSync : flight.registry().iterable(spaceObjFilter)) {
+			// iterate through all space objects
+			for (Sync objSync : flight.registry().iterable(SPACE_OBJ_FILTER)) {
+				@SuppressWarnings("unchecked")
 				SpaceObj obj = ((ObjectSync<SpaceObj>) objSync).value();
+				// if each is alive, draw it to the screen
 				if (obj.isAlive()) {
-					g2.setTransform(identity);
+					g2.setTransform(IDENTITY);
 					g2.translate(obj.getX(), obj.getY());
 					g2.rotate(obj.getTheta());
 					obj.draw(g2);
@@ -89,23 +171,31 @@ public class Client implements Runnable, KeyListener {
 		}
 	}
 
-	public static long	UPDATES_PER_SECOND	= 20;
-	public static long	UPDATE_DURATION		= 1000 / UPDATES_PER_SECOND;
-
+	/**
+	 * Orders the {@link Client} to connect to its assigned asteroids
+	 * {@link Server} and present a graphical user interface for game play.
+	 */
 	@Override
 	public void run() {
 		try {
 			flight.connect();
 			init();
 			window.setVisible(true);
-			while (true) {
-				update();
-				window.repaint();
-				Thread.sleep(UPDATE_DURATION);
-			}
+			new Timer().schedule(gameLoop, 0, UPDATE_DURATION);
 		} catch (IOException | TransmissionException e) {
 			System.out.println("error: flight engine server not accessable");
-		} catch (InterruptedException e) {}
+		}
+	}
+
+	private TimerTask		gameLoop;
+	{
+		gameLoop = new TimerTask() {
+			@Override
+			public void run() {
+				update();
+				window.repaint();
+			}
+		};
 	}
 
 	private static int		BULLETS	= 10;
@@ -123,24 +213,23 @@ public class Client implements Runnable, KeyListener {
 		}
 	}
 
-	private static float	ACCEL_PER_SECOND	= 10;
-	private static float	ACCEL_UPDATE		= ACCEL_PER_SECOND
+	private static final float	ACCEL_PER_SECOND	= 10;
+	private static final float	ACCEL_UPDATE		= ACCEL_PER_SECOND
 														/ UPDATES_PER_SECOND;
-	private static float	TURN_PER_SECOND		= (float) (Math.PI / 2);
-	private static float	TURN_UPDATE			= TURN_PER_SECOND
+	private static final float	TURN_PER_SECOND		= (float) Math.PI;
+	private static final float	TURN_UPDATE			= TURN_PER_SECOND
 														/ UPDATES_PER_SECOND;
 	private Random			random				= new Random();
 
+	/**
+	 * Updates this {@link Client}'s avatar ship and associated bullets one time
+	 * unit
+	 */
 	private void update() {
 		if (ship.isAlive()) {
+			// handle user input when a player's ship is alive
 			if (fire)
-				for (Bullet bullet : bullets)
-					if (!bullet.isAlive()) {
-						bullet.spawn(ship.getX(), ship.getY(), ship.getTheta(),
-								ship.getDX(), ship.getDY());
-						break;
-					}
-
+				fire();
 			if (up)
 				ship.forward(ACCEL_UPDATE);
 			if (left)
@@ -149,23 +238,28 @@ public class Client implements Runnable, KeyListener {
 				ship.forward(-ACCEL_UPDATE);
 			if (right)
 				ship.turn(TURN_UPDATE);
+			// update the player's ship...
 			ship.update();
-			if (ship.getX() < 0 || WIDTH < ship.getX()) {
-				float mod = ship.getX() % WIDTH;
-				ship.setX(0 < mod ? mod : mod + WIDTH);
-			}
-			if (ship.getY() < 0 || HEIGHT < ship.getY()) {
-				float mod = ship.getY() % HEIGHT;
-				ship.setY(0 < mod ? mod : mod + HEIGHT);
-			}
+			// ...and make sure it stays in the game window
+			wrap(ship);
 		} else {
+			// if the player's ship is dead, press fire to respawn
 			if (fire)
 				ship.spawn(random.nextFloat() * WIDTH, random.nextFloat()
 						* HEIGHT, (float) (random.nextFloat() * (2 * Math.PI)));
 		}
+		// update each bullet, if it is alive
 		for (Bullet bullet : bullets)
 			if (bullet.isAlive())
 				bullet.update();
+	}
+
+	private void fire() {
+		for (Bullet bullet : bullets)
+			if (!bullet.isAlive()) {
+				bullet.spawn(ship);
+				break;
+			}
 	}
 
 	private boolean	up, left, down, right, fire;
@@ -226,6 +320,15 @@ public class Client implements Runnable, KeyListener {
 	@Override
 	public void keyTyped(KeyEvent e) {}
 
+	/**
+	 * Starts a single asteroids {@link Client}. Optionally, if a a server name
+	 * and port number are specified as the first and second entries,
+	 * respectively, in the given command line arguments, they will be passed
+	 * along to the asteroids {@link Client}.
+	 * 
+	 * @param args
+	 *            the command line arguments
+	 */
 	public static void main(String[] args) {
 		Client asteroids;
 		if (args.length >= 2)

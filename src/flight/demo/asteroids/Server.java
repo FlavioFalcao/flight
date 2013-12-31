@@ -2,95 +2,167 @@ package flight.demo.asteroids;
 
 import static flight.demo.asteroids.Client.HEIGHT;
 import static flight.demo.asteroids.Client.WIDTH;
-import static flight.demo.asteroids.Client.spaceObjFilter;
+import static flight.demo.asteroids.Client.SPACE_OBJ_FILTER;
+import static flight.demo.asteroids.Client.wrap;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import flight.net.syn.ObjectSync;
 import flight.net.syn.Sync;
 
+/**
+ * <p>
+ * The asteroids server. Maintains and updates the game environment (i.e. all
+ * {@link Asteroid}s) including managing collision detection. It also wraps the
+ * flight engine {@link flight.net.Server} which provides network
+ * synchronization.
+ * </p>
+ * <p>
+ * Once {@link #run()}, this {@link Server} will begin simulating the game
+ * environment and accepting {@link flight.net.Client} connections with its
+ * member flight engine {@link flight.net.Server}.
+ * </p>
+ * 
+ * @author Colby Horn
+ * @see Client
+ */
 public class Server implements Runnable {
 
+	/**
+	 * Constructs a new {@link Server}, wrapping the default flight engine
+	 * {@link flight.net.Server}.
+	 */
 	public Server() {
 		flight = new flight.net.Server();
 	}
 
+	/**
+	 * Constructs a new {@link Server}, wrapping a flight engine
+	 * {@link flight.net.Server} on the specified port.
+	 * 
+	 * @param serverPort
+	 *            a valid port on which {@link flight.net.Client} connections
+	 *            will be accepted
+	 */
 	public Server(int serverPort) {
 		flight = new flight.net.Server(serverPort);
 	}
 
 	flight.net.Server	flight;
 
-	private static long	UPDATES_PER_SECOND	= 10;
-	private static long	UPDATE_DURATION		= 1000 / UPDATES_PER_SECOND;
+	/**
+	 * The number of times the game will attempt to update per second.
+	 */
+	public static final long	UPDATES_PER_SECOND	= 20;
 
+	/**
+	 * The amount of time, in milliseconds, each game update is expected to
+	 * take.
+	 */
+	public static final long	UPDATE_DURATION		= 1000 / UPDATES_PER_SECOND;
+
+	/**
+	 * Orders this {@link Server} begin simulating the game environment and open
+	 * its member flight engine {@link flight.net.Server} to accept
+	 * {@link flight.net.Client} connections.
+	 */
 	@Override
 	public void run() {
 		try {
 			flight.start();
 			init();
-			while (true) {
-				update();
-				Thread.sleep(UPDATE_DURATION);
-			}
+			new Timer().schedule(gameLoop, 0, UPDATE_DURATION);
 		} catch (IOException e) {
 			System.out
 					.println("error: flight engine server could not be started");
-		} catch (InterruptedException e) {}
+		}
 	}
 
-	private static final int	ASTEROIDS			= 20;
-	public static final float	AST_MAX_SPEED		= 2;
-	public static final float	AST_MIN_SIZE		= 10;
-	public static final float	AST_MAX_SIZE		= 40;
-	public static final float	AST_MAX_ROTATION	= (float) (Math.PI / 64);
+	private TimerTask			gameLoop;
+	{
+		gameLoop = new TimerTask() {
+			@Override
+			public void run() {
+				update();
+			}
+		};
+	}
 
-	private Random				random				= new Random();
-	private List<Asteroid>		asteroids			= new ArrayList<Asteroid>();
+	private static final int	ASTEROIDS				= 20;
+	private static final float	MIN_SIZE				= 10;
+	private static final float	MAX_SIZE				= 40;
+	private static final float	MAX_ROTATION			= (float) (Math.PI / 64);
+	private static final float	MAX_SPEED_PER_SECOND	= 25;
+	private static final float	MAX_SPEED_PER_UPDATE	= MAX_SPEED_PER_SECOND
+																/ UPDATES_PER_SECOND;
 
+	private Random				random					= new Random();
+	private List<Asteroid>		asteroids				= new ArrayList<Asteroid>();
+
+	/**
+	 * Initializes the game environment by constructing a batch of randomly
+	 * generated {@link Asteroids}.
+	 */
 	private void init() {
 		for (int i = 0; i < ASTEROIDS; ++i) {
+			// construct a new asteroid
 			Asteroid asteroid = new Asteroid(random.nextFloat()
-					* (AST_MAX_SIZE - AST_MIN_SIZE) + AST_MIN_SIZE,
-					random.nextFloat() * (2 * AST_MAX_ROTATION)
-							- AST_MAX_ROTATION);
+					* (MAX_SIZE - MIN_SIZE) + MIN_SIZE, random.nextFloat()
+					* (2 * MAX_ROTATION) - MAX_ROTATION);
+			asteroids.add(asteroid);
+			// spawn it in a random location
 			asteroid.spawn(random.nextFloat() * WIDTH, random.nextFloat()
 					* HEIGHT, (float) (random.nextFloat() * (2 * Math.PI)));
-			asteroid.forward(random.nextFloat() * AST_MAX_SPEED);
-			asteroids.add(asteroid);
+			// give it a random velocity
+			asteroid.forward(random.nextFloat() * MAX_SPEED_PER_UPDATE);
+			// and, finally, register the asteroid for network synchronization
 			asteroid.register(flight.registry());
 		}
 	}
 
-	@SuppressWarnings("unchecked")
+	/**
+	 * Updates the game environment a single time unit and checks for
+	 * {@link SpaceObj} collisions.
+	 */
 	private void update() {
 		for (Asteroid asteroid : asteroids) {
 			if (asteroid.isAlive()) {
+				// update each 'living' asteroid...
 				asteroid.update();
-				if (asteroid.getX() < 0 || WIDTH < asteroid.getX()) {
-					float mod = asteroid.getX() % WIDTH;
-					asteroid.setX(0 < mod ? mod : mod + WIDTH);
-				}
-				if (asteroid.getY() < 0 || HEIGHT < asteroid.getY()) {
-					float mod = asteroid.getY() % HEIGHT;
-					asteroid.setY(0 < mod ? mod : mod + HEIGHT);
-				}
-				for (Sync sync : flight.registry().iterable(spaceObjFilter)) {
+				// ...and make sure it stays in the game window
+				wrap(asteroid);
+				// iterate through all game objects...
+				for (Sync sync : flight.registry().iterable(SPACE_OBJ_FILTER)) {
+					@SuppressWarnings("unchecked")
 					SpaceObj obj = ((ObjectSync<SpaceObj>) sync).value();
-					if (!(obj instanceof Asteroid) && obj.isCollision(asteroid)) {
+					// ...selecting only ships and bullets (owned by clients)
+					if (!(obj instanceof Asteroid) && obj.collide(asteroid)) {
+						// if a a ship strikes this asteroid, destroy the ship
 						if (obj instanceof Ship)
-							obj.setAlive(false);
+							obj.die();
+						// if a bullet strikes this asteroid, instead destroy
+						// the asteroid
 						else if (obj instanceof Bullet)
-							asteroid.setAlive(false);
+							asteroid.die();
 					}
 				}
 			}
 		}
 	}
 
+	/**
+	 * Starts a single asteroids {@link Server}. Optionally, if a port number is
+	 * specified as the first entry in the given command line arguments, it will
+	 * be passed along to the asteroids {@link Server}.
+	 * 
+	 * @param args
+	 *            the command line arguments
+	 */
 	public static void main(String args[]) {
 		Server asteroidsServer;
 		if (args.length >= 1)
