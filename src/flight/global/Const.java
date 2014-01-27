@@ -1,5 +1,11 @@
 package flight.global;
 
+/**
+ * Serves globally-scoped constant values. All text output and error messages
+ * should be defined here.
+ * 
+ * @author Colby Horn
+ */
 public abstract class Const {
 
 	public static final String	COULD_NOT_INSTANTIATE		= "warning: could not instantiate class: %s";

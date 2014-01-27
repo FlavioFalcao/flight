@@ -10,8 +10,21 @@ import flight.net.msg.Message;
 import flight.net.msg.MessageHandler;
 import flight.net.msg.StringMessage;
 
+/**
+ * A unit test for basic network transmission. Requires successful message
+ * serialization...
+ * 
+ * @see MessageSerializationTest
+ * 
+ * @author Colby Horn
+ */
 public class NetworkTransmissionTest {
 
+	/**
+	 * Attempts to transmit and receive networking messages through connected
+	 * start {@link Client} and {@link Server} instances. Unsuccessful message
+	 * recoveries are shown to aid debugging.
+	 */
 	public static void main(String[] args) throws InterruptedException,
 			IOException, TransmissionException {
 

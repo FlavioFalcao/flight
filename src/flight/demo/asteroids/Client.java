@@ -38,12 +38,12 @@ import flight.util.Filter;
  * <p>
  * The asteroids client. Maintains a single player's avatar {@link Ship},
  * connects to an asteroids {@link Server}, and provides an graphical interface
- * to interact with the the game. It also wraps a flight engine
+ * to interact with the the game. It also wraps a Flight Engine
  * {@link flight.net.Client} which provides network synchronization.
  * </p>
  * <p>
  * Once {@link #run()}, this {@link Client} connect to its assigned asteroids
- * {@link Server} with its member flight engine {@link flight.net.Client},
+ * {@link Server} with its member Flight Engine {@link flight.net.Client},
  * synchronize with that {@link Server}'s game environment, and present a
  * graphical user interface for game play.
  * </p>
@@ -54,7 +54,7 @@ import flight.util.Filter;
 public class Client implements Runnable, KeyListener {
 
 	/**
-	 * Constructs a new {@link Client}, wrapping the default flight engine
+	 * Constructs a new {@link Client}, wrapping the default Flight Engine
 	 * {@link flight.net.Client}.
 	 */
 	public Client() {
@@ -62,7 +62,7 @@ public class Client implements Runnable, KeyListener {
 	}
 
 	/**
-	 * Constructs a new {@link Client}, wrapping a flight engine
+	 * Constructs a new {@link Client}, wrapping a Flight Engine
 	 * {@link flight.net.Client} set to connect to the specified server.
 	 * 
 	 * @param serverName
@@ -74,7 +74,7 @@ public class Client implements Runnable, KeyListener {
 	}
 
 	/**
-	 * Constructs a new {@link Client}, wrapping a flight engine
+	 * Constructs a new {@link Client}, wrapping a Flight Engine
 	 * {@link flight.net.Client} set to connect to the specified server on the
 	 * specified port.
 	 * 

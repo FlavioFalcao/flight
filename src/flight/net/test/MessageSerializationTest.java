@@ -21,8 +21,18 @@ import flight.net.msg.UpdateSyncMessage;
 import flight.net.syn.IntSync;
 import flight.net.syn.Sync;
 
+/**
+ * A unit test for networking message serialization.
+ * 
+ * @author Colby Horn
+ */
 public class MessageSerializationTest {
 
+	/**
+	 * Attempts to (locally) serialize and subsequently deserialize the various
+	 * networking messages defined in the package {@link flight.net.msg},
+	 * showing any unsuccessful attempts for debugging purposes.
+	 */
 	public static void main(String[] args) throws IOException,
 			InstantiationException, IllegalAccessException {
 

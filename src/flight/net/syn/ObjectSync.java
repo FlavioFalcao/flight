@@ -76,6 +76,11 @@ public class ObjectSync<E> extends Sync {
 	void setRegistry(SyncRegistry registry) {
 		super.setRegistry(registry);
 		if (registry != null)
+
+			/*
+			 * TODO revise complex object serialization and deserialization
+			 */
+
 			try {
 				Field[] fields = value.getClass().getFields();
 				for (Field field : fields) {

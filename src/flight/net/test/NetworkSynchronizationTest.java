@@ -17,8 +17,21 @@ import flight.net.syn.ObjectSync;
 import flight.net.syn.ShortSync;
 import flight.net.syn.Sync;
 
+/**
+ * A unit test for advanced network synchronization. Requires basic network
+ * transmission...
+ * 
+ * @see NetworkTransmissionTest
+ * 
+ * @author Colby Horn
+ */
 public class NetworkSynchronizationTest {
 
+	/**
+	 * Attempts to synchronize network data through synchronization references
+	 * defined in the package {@link flight.net.syn}. Unsuccessful
+	 * synchronizations are shown for debugging purposes.
+	 */
 	public static void main(String[] args) throws InterruptedException,
 			IOException, TransmissionException {
 

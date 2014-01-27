@@ -19,13 +19,13 @@ import flight.net.syn.Sync;
  * <p>
  * The asteroids server. Maintains and updates the game environment (i.e. all
  * {@link Asteroid}s) including managing collision detection. It also wraps the
- * flight engine {@link flight.net.Server} which provides network
+ * Flight Engine {@link flight.net.Server} which provides network
  * synchronization.
  * </p>
  * <p>
  * Once {@link #run()}, this {@link Server} will begin simulating the game
  * environment and accepting {@link flight.net.Client} connections with its
- * member flight engine {@link flight.net.Server}.
+ * member Flight Engine {@link flight.net.Server}.
  * </p>
  * 
  * @author Colby Horn
@@ -34,7 +34,7 @@ import flight.net.syn.Sync;
 public class Server implements Runnable {
 
 	/**
-	 * Constructs a new {@link Server}, wrapping the default flight engine
+	 * Constructs a new {@link Server}, wrapping the default Flight Engine
 	 * {@link flight.net.Server}.
 	 */
 	public Server() {
@@ -42,7 +42,7 @@ public class Server implements Runnable {
 	}
 
 	/**
-	 * Constructs a new {@link Server}, wrapping a flight engine
+	 * Constructs a new {@link Server}, wrapping a Flight Engine
 	 * {@link flight.net.Server} on the specified port.
 	 * 
 	 * @param serverPort
@@ -68,7 +68,7 @@ public class Server implements Runnable {
 
 	/**
 	 * Orders this {@link Server} begin simulating the game environment and open
-	 * its member flight engine {@link flight.net.Server} to accept
+	 * its member Flight Engine {@link flight.net.Server} to accept
 	 * {@link flight.net.Client} connections.
 	 */
 	@Override

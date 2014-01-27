@@ -98,7 +98,7 @@ public class SyncRegistry implements Iterable<Sync> {
 	@Override
 	public Iterator<Sync> iterator() {
 
-		// TODO: revise sync iteration order
+		// TODO revise sync iteration order
 
 		Filter<Sync> primitiveSyncFilter = new Filter<Sync>() {
 			@Override

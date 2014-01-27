@@ -26,9 +26,9 @@ import flight.net.syn.SyncRegistry;
  * </p>
  * <p>
  * {@link SpaceObj}s and their member sync fields are not initially registered
- * for synchronization the flight engine. In order to begin synchronization, the
+ * for synchronization the Flight Engine. In order to begin synchronization, the
  * method {@link #register(SyncRegistry)} must be called and passed a valid
- * flight engine {@link SyncRegistry}.
+ * Flight Engine {@link SyncRegistry}.
  * </p>
  * 
  * @author Colby Horn
@@ -53,7 +53,7 @@ public abstract class SpaceObj implements Serializable {
 	 * methods!
 	 * </p>
 	 * <p>
-	 * The flight engine {@link Sync} containing the network synchronized alive
+	 * The Flight Engine {@link Sync} containing the network synchronized alive
 	 * variable of this {@link SpaceObj}. Must be public to allow the flight
 	 * engine access during network deserialization.
 	 * </p>
@@ -105,7 +105,7 @@ public abstract class SpaceObj implements Serializable {
 	 * methods!
 	 * </p>
 	 * <p>
-	 * The flight engine {@link Sync} containing the network synchronized
+	 * The Flight Engine {@link Sync} containing the network synchronized
 	 * x-coordinate of this {@link SpaceObj}. Must be public to allow the flight
 	 * engine access during network deserialization.
 	 * </p>
@@ -118,7 +118,7 @@ public abstract class SpaceObj implements Serializable {
 	 * methods!
 	 * </p>
 	 * <p>
-	 * The flight engine {@link Sync} containing the network synchronized
+	 * The Flight Engine {@link Sync} containing the network synchronized
 	 * y-coordinate of this {@link SpaceObj}. Must be public to allow the flight
 	 * engine access during network deserialization.
 	 * </p>
@@ -207,7 +207,7 @@ public abstract class SpaceObj implements Serializable {
 	 * methods!
 	 * </p>
 	 * <p>
-	 * The flight engine {@link Sync} containing the network synchronized
+	 * The Flight Engine {@link Sync} containing the network synchronized
 	 * rotation of this {@link SpaceObj}. Must be public to allow the flight
 	 * engine access during network deserialization.
 	 * </p>
@@ -288,7 +288,7 @@ public abstract class SpaceObj implements Serializable {
 	 * Registers the {@link SpaceObj} and its member sync fields with the
 	 * specified {@link SyncRegistry}. This will cause this {@link SpaceObj} and
 	 * its fields to be synchronized across the network through all the
-	 * connected flight engines. This method should be called at most once for
+	 * connected Flight Engines. This method should be called at most once for
 	 * any {@link SpaceObj}.
 	 * 
 	 * @param registry

@@ -7,7 +7,7 @@ import java.awt.Graphics2D;
 
 /**
  * <p>
- * A class representing a {@link Ship}s bullet. Inherits game play mechanics,
+ * A class representing a {@link Ship}'s bullet. Inherits game play mechanics,
  * physics, and network synchronization from it's {@link SpaceObj} superclass.
  * </p>
  * <p>
