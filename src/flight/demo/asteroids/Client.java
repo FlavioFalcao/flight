@@ -32,6 +32,7 @@ import javax.swing.JPanel;
 import flight.net.err.TransmissionException;
 import flight.net.syn.ObjectSync;
 import flight.net.syn.Sync;
+import flight.util.ClassFilter;
 import flight.util.Filter;
 
 /**
@@ -135,13 +136,9 @@ public class Client implements Runnable, KeyListener {
 	 * {@link SpaceObj}s, selecting all {@link ObjectSync}s implicitly selects
 	 * only {@link SpaceObj}s.
 	 */
-	public static final Filter<Sync>		SPACE_OBJ_FILTER	= new Filter<Sync>() {
-																	@Override
-																	public boolean select(
-																			Sync element) {
-																		return element instanceof ObjectSync<?>;
-																	}
-																};
+	public static final Filter<Sync>		SPACE_OBJ_FILTER	= new ClassFilter<Sync>(
+																		new ObjectSync<Object>(
+																				new Object()));
 
 	private static final AffineTransform	IDENTITY			= new AffineTransform();
 
@@ -215,11 +212,11 @@ public class Client implements Runnable, KeyListener {
 
 	private static final float	ACCEL_PER_SECOND	= 10;
 	private static final float	ACCEL_UPDATE		= ACCEL_PER_SECOND
-														/ UPDATES_PER_SECOND;
+															/ UPDATES_PER_SECOND;
 	private static final float	TURN_PER_SECOND		= (float) Math.PI;
 	private static final float	TURN_UPDATE			= TURN_PER_SECOND
-														/ UPDATES_PER_SECOND;
-	private Random			random				= new Random();
+															/ UPDATES_PER_SECOND;
+	private Random				random				= new Random();
 
 	/**
 	 * Updates this {@link Client}'s avatar ship and associated bullets one time
@@ -228,16 +225,11 @@ public class Client implements Runnable, KeyListener {
 	private void update() {
 		if (ship.isAlive()) {
 			// handle user input when a player's ship is alive
-			if (fire)
-				fire();
-			if (up)
-				ship.forward(ACCEL_UPDATE);
-			if (left)
-				ship.turn(-TURN_UPDATE);
-			if (down)
-				ship.forward(-ACCEL_UPDATE);
-			if (right)
-				ship.turn(TURN_UPDATE);
+			if (fire) fire();
+			if (up) ship.forward(ACCEL_UPDATE);
+			if (left) ship.turn(-TURN_UPDATE);
+			if (down) ship.forward(-ACCEL_UPDATE);
+			if (right) ship.turn(TURN_UPDATE);
 			// update the player's ship...
 			ship.update();
 			// ...and make sure it stays in the game window
@@ -250,8 +242,7 @@ public class Client implements Runnable, KeyListener {
 		}
 		// update each bullet, if it is alive
 		for (Bullet bullet : bullets)
-			if (bullet.isAlive())
-				bullet.update();
+			if (bullet.isAlive()) bullet.update();
 	}
 
 	private void fire() {
